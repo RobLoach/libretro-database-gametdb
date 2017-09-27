@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node ."
   },
-  "homepage": "http://github.com/robloach/libretro-database-wii",
+  "homepage": "https://github.com/RobLoach/libretro-database-gametdb",
   "author": "Rob Loach",
   "license": "MIT",
   "dependencies": {
