@@ -94,6 +94,18 @@ function gameToEntry(game) {
 		}
 	}
 
+	if (game.input) {
+		if (game.input[0]['$'].players) {
+			output.users = game.input[0]['$'].players
+		}
+	}
+
+	if (game.rating) {
+		if (game.rating[0]['$'].type == 'ESRB') {
+			output.esrb_rating = game.rating[0]['$'].value
+		}
+	}
+
 	output.serial = game.id ? game.id[0] : ''
 	output.developer = game.developer ? game.developer[0] : ''
 	if (game.date && game.date[0] && game.date[0].$) {
@@ -127,13 +139,19 @@ function datEntry(game) {
 		gameEntries += `\n	publisher "${game.publisher}"`
 	}
 	if (game.releaseyear) {
-		gameEntries += `\n	releaseyear "${game.releaseyear}"`
+		gameEntries += `\n	releaseyear ${game.releaseyear}`
 	}
 	if (game.releasemonth) {
-		gameEntries += `\n	releasemonth "${game.releasemonth}"`
+		gameEntries += `\n	releasemonth ${game.releasemonth}`
 	}
 	if (game.releaseday) {
-		gameEntries += `\n	releaseday "${game.releaseday}"`
+		gameEntries += `\n	releaseday ${game.releaseday}`
+	}
+	if (game.users) {
+		gameEntries += `\n	users ${game.users}`
+	}
+	if (game.esrb_rating) {
+		gameEntries += `\n	esrb_rating "${game.esrb_rating}"`
 	}
 	return `
 game (
