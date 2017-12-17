@@ -1,6 +1,6 @@
 {
   "name": "libretro-database-wii",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Builds libretro-database's Nintendo Wii database.",
   "main": "index.js",
   "scripts": {
