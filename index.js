@@ -32,9 +32,9 @@ async function extractDB(filename) {
 	await decompress(filename, 'dist')
 }
 
-function readWiiDB() {
+function readDB(filename = 'dist/wiitdb.xml') {
 	return new Promise((resolve, reject) => {
-		fs.readFile('dist/wiitdb.xml', (err, data) => {
+		fs.readFile(filename, (err, data) => {
 			if (err) {
 				return reject(err)
 			}
@@ -48,7 +48,7 @@ function readWiiDB() {
 	})
 }
 
-function gameToEntry(game) {
+function gameToEntry(game, type) {
 	output = {}
 	output.name = game['$'] ? game['$'].name : ''
 	let nameReplacements = {
@@ -69,7 +69,6 @@ function gameToEntry(game) {
 	for (let original in nameReplacements) {
 		output.name = output.name.replace(original, nameReplacements[original])
 	}
-
 
 	output.region = game.region ? game.region[0] : 'NTSC-U'
 	switch (output.region) {
@@ -113,17 +112,24 @@ function gameToEntry(game) {
 		output.releaseday = game.date[0].$.day
 	}
 	output.publisher = game.publisher ? game.publisher[0] : ''
-	output.type = game.type ? game.type[0] : 'Wii'
-	if (output.type != 'GameCube') {
-		output.type = 'Wii'
+
+	if (type != 'PS3') {
+		output.type = game.type ? game.type[0] : 'Wii'
+		if (output.type != 'GameCube') {
+			output.type = 'Wii'
+		}
 	}
+	else {
+		output.type = 'PS3'
+	}
+
 	return output.serial ? output : null
 }
 
-function header(name = 'Wii') {
+function header(name = 'Wii', vendor = 'Nintendo', consoleParent = 'Nintendo') {
 	return `clrmamepro (
-	name "Nintendo - Nintendo ${name}"
-	description "Nintendo - Nintendo ${name}"
+	name "${vendor} - ${consoleParent} ${name}"
+	description "${vendor} - ${consoleParent} ${name}"
 	version "${pkg.version}"
 	homepage "${pkg.homepage}"
 )\n`
@@ -167,7 +173,7 @@ function getDatabase(games, type = 'Wii') {
 	database = []
 
 	for (id in games) {
-		game = gameToEntry(games[id])
+		game = gameToEntry(games[id], type)
 		if (game && game.type == type) {
 			database.push(game)
 		}
@@ -176,8 +182,8 @@ function getDatabase(games, type = 'Wii') {
 	return database
 }
 
-function getDat(database, name) {
-	output = header(name)
+function getDat(database, name, vendor, consoleParent) {
+	output = header(name, vendor, consoleParent)
 	for (id in database) {
 		output += datEntry(database[id])
 	}
@@ -186,20 +192,27 @@ function getDat(database, name) {
 
 async function engage() {
 	try {
-		console.log('start')
+		console.log('Wii/GameCube')
 		await downloadDB('http://www.gametdb.com/wiitdb.zip', 'wiitdb.zip')
 		await extractDB('wiitdb.zip')
-		let games = await readWiiDB()
-
+		let games = await readDB('dist/wiitdb.xml')
 		let types = ['Wii', 'GameCube'];
 		for (let index = 0; index < types.length; ++index) {
 		    let type = types[index];
 
 			let database = getDatabase(games, type)
 
-			let dat = getDat(database, type)
+			let dat = getDat(database, type, 'Nintendo', 'Nintendo')
 			fs.writeFileSync('libretro-database/dat/Nintendo - ' + type + '.dat', dat)
 		}
+
+		console.log('Sony PlayStation 3')
+		games = await readDB('dist/ps3tdb.xml')
+		await downloadDB('http://www.gametdb.com/ps3tdb.zip', 'ps3tdb.zip')
+		await extractDB('ps3tdb.zip')
+		let ps3database = getDatabase(games, 'PS3')
+		let ps3dat = getDat(ps3database, 'PlayStation 3', 'Sony', 'Sony')
+		fs.writeFileSync('libretro-database/dat/Sony - PlayStation 3.dat', ps3dat)
 	}
 	catch (e) {
 		console.error(e)
