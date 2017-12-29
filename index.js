@@ -211,7 +211,7 @@ async function engage() {
 		await downloadDB('http://www.gametdb.com/ps3tdb.zip', 'ps3tdb.zip')
 		await extractDB('ps3tdb.zip')
 		let ps3database = getDatabase(games, 'PS3')
-		let ps3dat = getDat(ps3database, 'PlayStation 3', 'Sony', 'Sony')
+		let ps3dat = getDat(ps3database, '3', 'Sony', 'PlayStation')
 		fs.writeFileSync('libretro-database/dat/Sony - PlayStation 3.dat', ps3dat)
 	}
 	catch (e) {
