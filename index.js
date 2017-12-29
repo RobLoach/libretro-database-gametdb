@@ -6,15 +6,15 @@ const rimraf = require('rimraf')
 const xml2js = require('xml2js')
 const pkg = require('./package.json')
 
-function downloadwiidb() {
+function downloadDB(url, filename) {
 	return new Promise((resolve, reject) => {
-		if (fileExists.sync('wiitdb.zip')) {
+		if (fileExists.sync(filename)) {
 			console.log('skip download')
 			return resolve()
 		}
 
-		var file = fs.createWriteStream("wiitdb.zip");
-		var request = http.get("http://www.gametdb.com/wiitdb.zip", function(response) {
+		var file = fs.createWriteStream(filename);
+		var request = http.get(url, function(response) {
 			console.log(response)
 			response.pipe(file);
 		})
@@ -28,9 +28,8 @@ function downloadwiidb() {
 	})
 }
 
-async function extractwiidb() {
-	rimraf.sync('dist')
-	await decompress('wiitdb.zip', 'dist')
+async function extractDB(filename) {
+	await decompress(filename, 'dist')
 }
 
 function readWiiDB() {
@@ -188,8 +187,8 @@ function getDat(database, name) {
 async function engage() {
 	try {
 		console.log('start')
-		await downloadwiidb()
-		await extractwiidb()
+		await downloadDB('http://www.gametdb.com/wiitdb.zip', 'wiitdb.zip')
+		await extractDB('wiitdb.zip')
 		let games = await readWiiDB()
 
 		let types = ['Wii', 'GameCube'];
