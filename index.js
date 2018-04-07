@@ -217,7 +217,7 @@ async function engage() {
 		}
 
 		console.log('Sony PlayStation 3')
-		await downloadDB('https://www.gametdb.com/ps3tdb.zip', 'ps3tdb.zip')
+		await downloadDB('http://www.gametdb.com/ps3tdb.zip', 'ps3tdb.zip')
 		await extractDB('ps3tdb.zip')
 		games = await readDB('dist/ps3tdb.xml')
 		let ps3database = getDatabase(games, 'PS3')
