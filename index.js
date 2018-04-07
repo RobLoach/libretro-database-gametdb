@@ -135,35 +135,45 @@ function header(name = 'Wii', vendor = 'Nintendo', consoleParent = 'Nintendo') {
 )\n`
 }
 
+/**
+ * Clean the given value to be DAT file safe.
+ */
+function cleanValue(val) {
+	return val.replace(new RegExp('"', 'g'), '\'')
+}
+
+/**
+ * Construct a DAT entry based on the given game.
+ */
 function datEntry(game) {
 	gameEntries = ''
 	if (game.developer) {
-		gameEntries += `\n	developer "${game.developer}"`
+		gameEntries += `\n	developer "${cleanValue(game.developer)}"`
 	}
 	if (game.publisher) {
-		gameEntries += `\n	publisher "${game.publisher}"`
+		gameEntries += `\n	publisher "${cleanValue(game.publisher)}"`
 	}
 	if (game.releaseyear) {
-		gameEntries += `\n	releaseyear ${game.releaseyear}`
+		gameEntries += `\n	releaseyear ${cleanValue(game.releaseyear)}`
 	}
 	if (game.releasemonth) {
-		gameEntries += `\n	releasemonth ${game.releasemonth}`
+		gameEntries += `\n	releasemonth ${cleanValue(game.releasemonth)}`
 	}
 	if (game.releaseday) {
-		gameEntries += `\n	releaseday ${game.releaseday}`
+		gameEntries += `\n	releaseday ${cleanValue(game.releaseday)}`
 	}
 	if (game.users) {
-		gameEntries += `\n	users ${game.users}`
+		gameEntries += `\n	users ${cleanValue(game.users)}`
 	}
 	if (game.esrb_rating) {
-		gameEntries += `\n	esrb_rating "${game.esrb_rating}"`
+		gameEntries += `\n	esrb_rating "${cleanValue(game.esrb_rating)}"`
 	}
 	return `
 game (
-	name "${game.name}"
+	name "${cleanValue(game.name)}"
 	serial "${game.serial}"${gameEntries}
 	rom (
-		serial "${game.serial}"
+		serial "${cleanValue(game.serial)}"
 	)
 )
 `
