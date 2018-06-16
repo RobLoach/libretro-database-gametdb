@@ -1,6 +1,6 @@
 {
   "name": "libretro-database-gametdb",
-  "version": "2018.4.7",
+  "version": "2018.6.16",
   "description": "Builds libretro-database's DATs using GameTDB data (Wii/GameCube/PS3).",
   "main": "index.js",
   "scripts": {
@@ -10,6 +10,7 @@
   "author": "Rob Loach",
   "license": "MIT",
   "dependencies": {
+    "array-sort": "^1.0.0",
     "decompress": "^4.2.0",
     "file-exists": "^5.0.0",
     "rimraf": "^2.6.2",

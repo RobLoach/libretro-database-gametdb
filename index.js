@@ -5,6 +5,7 @@ const decompress = require('decompress');
 const rimraf = require('rimraf')
 const xml2js = require('xml2js')
 const pkg = require('./package.json')
+const arraySort = require('array-sort')
 
 function downloadDB(url, filename) {
 	return new Promise((resolve, reject) => {
@@ -189,6 +190,8 @@ function getDatabase(games, type = 'Wii') {
 		}
 	}
 
+	database = arraySort(database, 'name')
+
 	return database
 }
 
@@ -223,6 +226,14 @@ async function engage() {
 		let ps3database = getDatabase(games, 'PS3')
 		let ps3dat = getDat(ps3database, '3', 'Sony', 'PlayStation')
 		fs.writeFileSync('libretro-database/dat/Sony - PlayStation 3.dat', ps3dat)
+
+		console.log('Nintendo Wii U')
+		await downloadDB('http://www.gametdb.com/wiiutdb.zip', 'wiiutdb.zip')
+		await extractDB('wiiutdb.zip')
+		games = await readDB('dist/wiiutdb.xml')
+		let wiiudatabase = getDatabase(games, 'PS3')
+		let wiiudat = getDat(wiiudatabase, 'U', 'Nintendo', 'Wii')
+		fs.writeFileSync('libretro-database/dat/Nintendo - Wii U.dat', wiiudat)	
 	}
 	catch (e) {
 		console.error(e)
