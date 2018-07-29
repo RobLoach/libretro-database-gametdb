@@ -190,7 +190,7 @@ function getDatabase(games, type = 'Wii') {
 		}
 	}
 
-	database = arraySort(database, 'name')
+	database = arraySort(database, ['name', 'serial'])
 
 	return database
 }
