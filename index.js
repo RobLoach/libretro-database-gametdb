@@ -114,20 +114,17 @@ function gameToEntry(game, type) {
 	}
 	output.publisher = game.publisher ? game.publisher[0] : ''
 
-	if (type != 'PS3') {
+	if (type == 'Wii' || type == 'GameCube') {
 		output.type = game.type ? game.type[0] : 'Wii'
 		if (output.type != 'GameCube') {
 			output.type = 'Wii'
 		}
 	}
-	else {
-		output.type = 'PS3'
-	}
 
 	return output.serial ? output : null
 }
 
-function header(name = 'Wii', vendor = 'Nintendo', consoleParent = 'Nintendo') {
+function header(name, vendor, consoleParent) {
 	return `clrmamepro (
 	name "${vendor} - ${consoleParent} ${name}"
 	description "${vendor} - ${consoleParent} ${name}"
@@ -180,12 +177,12 @@ game (
 `
 }
 
-function getDatabase(games, type = 'Wii') {
+function getDatabase(games, type = null) {
 	database = []
 
 	for (id in games) {
 		game = gameToEntry(games[id], type)
-		if (game && game.type == type) {
+		if (type == null || game.type == type) {
 			database.push(game)
 		}
 	}
@@ -212,9 +209,7 @@ async function engage() {
 		let types = ['Wii', 'GameCube'];
 		for (let index = 0; index < types.length; ++index) {
 		    let type = types[index];
-
 			let database = getDatabase(games, type)
-
 			let dat = getDat(database, type, 'Nintendo', 'Nintendo')
 			fs.writeFileSync('libretro-database/dat/Nintendo - ' + type + '.dat', dat)
 		}
@@ -223,7 +218,7 @@ async function engage() {
 		await downloadDB('http://www.gametdb.com/ps3tdb.zip', 'ps3tdb.zip')
 		await extractDB('ps3tdb.zip')
 		games = await readDB('dist/ps3tdb.xml')
-		let ps3database = getDatabase(games, 'PS3')
+		let ps3database = getDatabase(games)
 		let ps3dat = getDat(ps3database, '3', 'Sony', 'PlayStation')
 		fs.writeFileSync('libretro-database/dat/Sony - PlayStation 3.dat', ps3dat)
 
@@ -231,9 +226,31 @@ async function engage() {
 		await downloadDB('http://www.gametdb.com/wiiutdb.zip', 'wiiutdb.zip')
 		await extractDB('wiiutdb.zip')
 		games = await readDB('dist/wiiutdb.xml')
-		let wiiudatabase = getDatabase(games, 'PS3')
-		let wiiudat = getDat(wiiudatabase, 'U', 'Nintendo', 'Wii')
-		fs.writeFileSync('libretro-database/dat/Nintendo - Wii U.dat', wiiudat)	
+		let wiiudatabase = getDatabase(games)
+		let wiiudat = getDat(wiiudatabase, 'Wii U', 'Nintendo', 'Nintendo')
+		fs.writeFileSync('libretro-database/dat/Nintendo - Wii U.dat', wiiudat)
+
+		/*
+		TODO: Add serial scanning to Nintendo DS?
+		console.log('Nintendo DS')
+		await downloadDB('http://www.gametdb.com/dstdb.zip?LANG=EN', 'dstdb.zip')
+		await extractDB('dstdb.zip')
+		games = await readDB('dist/dstdb.xml')
+		let dsdatabase = getDatabase(games)
+		let dsdat = getDat(dsdatabase, 'DS', 'Nintendo', 'Nintendo')
+		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo DS.dat', dsdat)	
+		*/
+
+		/*
+		TODO: Fix XML parser not working with <3DS in the beginning.
+		console.log('Nintendo 3DS')
+		await downloadDB('http://www.gametdb.com/3dstdb.zip?LANG=EN', '3dstdb.zip')
+		await extractDB('3dstdb.zip')
+		games = await readDB('dist/3dstdb.xml')
+		let threedsdatabase = getDatabase(games)
+		let threedsdat = getDat(threedsdatabase, '3DS', 'Nintendo', 'Nintendo')
+		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo 3DS.dat', threedsdat)
+		*/
 	}
 	catch (e) {
 		console.error(e)
