@@ -231,6 +231,17 @@ async function engage() {
 		fs.writeFileSync('libretro-database/dat/Nintendo - Wii U.dat', wiiudat)
 
 		/*
+		TODO: Add a Switch libretro core.
+		console.log('Nintendo Switch')
+		await downloadDB('http://www.gametdb.com/switchtdb.zip', 'switchtdb.zip')
+		await extractDB('switchtdb.zip')
+		games = await readDB('dist/switchtdb.xml')
+		let switchdatabase = getDatabase(games)
+		let switchdat = getDat(switchdatabase, 'Switch', 'Nintendo', 'Nintendo')
+		fs.writeFileSync('libretro-database/dat/Nintendo - Switch.dat', switchdat)
+		*/
+
+		/*
 		TODO: Add serial scanning to Nintendo DS?
 		console.log('Nintendo DS')
 		await downloadDB('http://www.gametdb.com/dstdb.zip?LANG=EN', 'dstdb.zip')
