@@ -65,7 +65,8 @@ function gameToEntry(game, type) {
 		'FI': 'Fi',
 		'PL': 'Pl',
 		'CS': 'Cs',
-		'HU': 'Hu'
+		'HU': 'Hu',
+		'°': ''
 	}
 	for (let original in nameReplacements) {
 		output.name = output.name.replace(original, nameReplacements[original])
