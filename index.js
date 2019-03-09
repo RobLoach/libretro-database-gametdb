@@ -39,6 +39,7 @@ function readDB(filename = 'dist/wiitdb.xml') {
 			if (err) {
 				return reject(err)
 			}
+			data = data.toString().replace('	<3DSTDB', '	<version')
 			xml2js.parseString(data, (err, result) => {
 				if (err) {
 					return reject(err)
@@ -94,19 +95,33 @@ function gameToEntry(game, type) {
 		}
 	}
 
+	// Clean up Japanese titles
+	if (output.name == " (Japan) (Ja)" || output.name == " (Korea) (KO)") {
+		for (let id in game.locale) {
+			if (game.locale[id].$.lang == 'JA' || game.locale[id].$.lang == 'KO') {
+				output.name = game.locale[id].title[0]
+			}
+		}
+	}
+
+	// Amount of players/users
 	if (game.input) {
 		if (game.input[0]['$'].players) {
 			output.users = game.input[0]['$'].players
 		}
 	}
 
+	// ESRB Rating
 	if (game.rating) {
 		if (game.rating[0]['$'].type == 'ESRB') {
 			output.esrb_rating = game.rating[0]['$'].value
 		}
 	}
 
+	// Serial Number
 	output.serial = game.id ? game.id[0] : ''
+
+	// Developer
 	output.developer = game.developer ? game.developer[0] : ''
 	if (game.date && game.date[0] && game.date[0].$) {
 		output.releaseyear = game.date[0].$.year
@@ -253,8 +268,6 @@ async function engage() {
 		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo DS.dat', dsdat)	
 		*/
 
-		/*
-		TODO: Fix XML parser not working with <3DS in the beginning.
 		console.log('Nintendo 3DS')
 		await downloadDB('http://www.gametdb.com/3dstdb.zip?LANG=EN', '3dstdb.zip')
 		await extractDB('3dstdb.zip')
@@ -262,7 +275,6 @@ async function engage() {
 		let threedsdatabase = getDatabase(games)
 		let threedsdat = getDat(threedsdatabase, '3DS', 'Nintendo', 'Nintendo')
 		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo 3DS.dat', threedsdat)
-		*/
 	}
 	catch (e) {
 		console.error(e)
