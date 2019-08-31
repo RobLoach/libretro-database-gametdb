@@ -159,7 +159,7 @@ function cleanValue(val) {
 /**
  * Construct a DAT entry based on the given game.
  */
-function datEntry(game) {
+function datEntry(game, extension) {
 	gameEntries = ''
 	if (game.developer) {
 		gameEntries += `\n	developer "${cleanValue(game.developer)}"`
@@ -188,6 +188,7 @@ game (
 	serial "${game.serial}"${gameEntries}
 	rom (
 		serial "${cleanValue(game.serial)}"
+		name "${cleanValue(game.name)}.${extension}"
 	)
 )
 `
@@ -208,10 +209,10 @@ function getDatabase(games, type = null) {
 	return database
 }
 
-function getDat(database, name, vendor, consoleParent) {
+function getDat(database, name, vendor, consoleParent, extension) {
 	output = header(name, vendor, consoleParent)
 	for (id in database) {
-		output += datEntry(database[id])
+		output += datEntry(database[id], extension)
 	}
 	return output
 }
@@ -226,7 +227,7 @@ async function engage() {
 		for (let index = 0; index < types.length; ++index) {
 		    let type = types[index];
 			let database = getDatabase(games, type)
-			let dat = getDat(database, type, 'Nintendo', 'Nintendo')
+			let dat = getDat(database, type, 'Nintendo', 'Nintendo', 'iso')
 			fs.writeFileSync('libretro-database/dat/Nintendo - ' + type + '.dat', dat)
 		}
 
@@ -235,7 +236,7 @@ async function engage() {
 		await extractDB('ps3tdb.zip')
 		games = await readDB('dist/ps3tdb.xml')
 		let ps3database = getDatabase(games)
-		let ps3dat = getDat(ps3database, '3', 'Sony', 'PlayStation')
+		let ps3dat = getDat(ps3database, '3', 'Sony', 'PlayStation', 'iso')
 		fs.writeFileSync('libretro-database/dat/Sony - PlayStation 3.dat', ps3dat)
 
 		console.log('Nintendo Wii U')
@@ -243,7 +244,7 @@ async function engage() {
 		await extractDB('wiiutdb.zip')
 		games = await readDB('dist/wiiutdb.xml')
 		let wiiudatabase = getDatabase(games)
-		let wiiudat = getDat(wiiudatabase, 'Wii U', 'Nintendo', 'Nintendo')
+		let wiiudat = getDat(wiiudatabase, 'Wii U', 'Nintendo', 'Nintendo', 'wux')
 		fs.writeFileSync('libretro-database/dat/Nintendo - Wii U.dat', wiiudat)
 
 		/*
@@ -273,7 +274,7 @@ async function engage() {
 		await extractDB('3dstdb.zip')
 		games = await readDB('dist/3dstdb.xml')
 		let threedsdatabase = getDatabase(games)
-		let threedsdat = getDat(threedsdatabase, '3DS', 'Nintendo', 'Nintendo')
+		let threedsdat = getDat(threedsdatabase, '3DS', 'Nintendo', 'Nintendo', '3ds')
 		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo 3DS.dat', threedsdat)
 	}
 	catch (e) {
