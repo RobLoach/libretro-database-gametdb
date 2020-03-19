@@ -13,7 +13,7 @@
     "array-sort": "^1.0.0",
     "decompress": "^4.2.0",
     "file-exists": "^5.0.1",
-    "rimraf": "^3.0.0",
-    "xml2js": "^0.4.19"
+    "rimraf": "^3.0.2",
+    "xml2js": "^0.4.23"
   }
 }
