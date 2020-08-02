@@ -11,7 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "array-sort": "^1.0.0",
-    "decompress": "^4.2.0",
+    "decompress": "^4.2.1",
     "file-exists": "^5.0.1",
     "rimraf": "^3.0.2",
     "xml2js": "^0.4.23"

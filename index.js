@@ -106,8 +106,9 @@ function gameToEntry(game, type) {
 
 	// Amount of players/users
 	if (game.input) {
-		if (game.input[0]['$'].players) {
-			output.users = game.input[0]['$'].players
+		let input = game.input
+		if (input[0] && input[0]['$'] && input[0]['$'].players) {
+			output.users = input[0]['$'].players
 		}
 	}
 
@@ -266,7 +267,7 @@ async function engage() {
 		games = await readDB('dist/dstdb.xml')
 		let dsdatabase = getDatabase(games)
 		let dsdat = getDat(dsdatabase, 'DS', 'Nintendo', 'Nintendo')
-		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo DS.dat', dsdat)	
+		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo DS.dat', dsdat)
 		*/
 
 		console.log('Nintendo 3DS')
