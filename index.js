@@ -177,7 +177,7 @@ function datEntry(game, extension) {
 	if (game.releaseday) {
 		gameEntries += `\n	releaseday ${cleanValue(game.releaseday)}`
 	}
-	if (game.users) {
+	if (game.users > 0) {
 		gameEntries += `\n	users ${cleanValue(game.users)}`
 	}
 	if (game.esrb_rating) {
