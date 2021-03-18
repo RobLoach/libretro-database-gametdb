@@ -188,8 +188,8 @@ game (
 	name "${cleanValue(game.name)}"
 	serial "${game.serial}"${gameEntries}
 	rom (
-		serial "${cleanValue(game.serial)}"
 		name "${cleanValue(game.name)}.${extension}"
+		serial "${cleanValue(game.serial)}"
 	)
 )
 `
