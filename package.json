@@ -1,6 +1,6 @@
 {
   "name": "libretro-database-gametdb",
-  "version": "2021.3.19",
+  "version": "2021.10.24",
   "description": "Builds libretro-database's DATs using GameTDB data (Wii/GameCube/PS3).",
   "main": "index.js",
   "scripts": {
