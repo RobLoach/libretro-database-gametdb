@@ -157,6 +157,10 @@ function cleanValue(val) {
 	return val.replace(new RegExp('"', 'g'), '\'')
 }
 
+function cleanTitle(val) {
+	return val.replaceAll('é', 'e');
+}
+
 /**
  * Construct a DAT entry based on the given game.
  */
@@ -183,12 +187,14 @@ function datEntry(game, extension) {
 	if (game.esrb_rating) {
 		gameEntries += `\n	esrb_rating "${cleanValue(game.esrb_rating)}"`
 	}
+	
+	let gameName = cleanTitle(cleanValue(game.name))
 	return `
 game (
-	name "${cleanValue(game.name)}"
+	name "${gameName}"
 	serial "${game.serial}"${gameEntries}
 	rom (
-		name "${cleanValue(game.name)}.${extension}"
+		name "${gameName}.${extension}"
 		serial "${cleanValue(game.serial)}"
 	)
 )
