@@ -161,6 +161,7 @@ function cleanTitle(val) {
 	return val
 		.replaceAll('é', 'e')
 		.replaceAll('Ō', 'O')
+		.replaceAll('ō', 'o')
 }
 
 /**
