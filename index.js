@@ -158,7 +158,9 @@ function cleanValue(val) {
 }
 
 function cleanTitle(val) {
-	return val.replaceAll('é', 'e');
+	return val
+		.replaceAll('é', 'e')
+		.replaceAll('Ō', 'O')
 }
 
 /**
