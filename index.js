@@ -279,6 +279,8 @@ async function engage() {
 		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo DS.dat', dsdat)
 		*/
 
+		/*
+		// Nintendo 3DS -- GameTDB doesn't provide CRCs, which is what 3DS REtroArch scanning uses currently
 		console.log('Nintendo 3DS')
 		await downloadDB('http://www.gametdb.com/3dstdb.zip?LANG=EN', '3dstdb.zip')
 		await extractDB('3dstdb.zip')
@@ -286,6 +288,7 @@ async function engage() {
 		let threedsdatabase = getDatabase(games)
 		let threedsdat = getDat(threedsdatabase, '3DS', 'Nintendo', 'Nintendo', '3ds')
 		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo 3DS.dat', threedsdat)
+		*/
 	}
 	catch (e) {
 		console.error(e)
