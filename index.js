@@ -15,6 +15,46 @@ const regionNames = {
 	'PAL-R': 'Russia'
 }
 
+// GameTDB genres mapped to the genre names used across libretro-database.
+const genreNames = {
+	'action': 'Action',
+	'adventure': 'Adventure',
+	'platformer': 'Platform',
+	'3d platformer': 'Platform',
+	'shooter': 'Shooter',
+	'first-person shooter': 'Shooter',
+	'third-person shooter': 'Shooter',
+	"shoot 'em up": "Shoot'em Up",
+	"beat 'em up": "Beat'em Up",
+	'fighting': 'Fighting',
+	'racing': 'Racing',
+	'kart racing': 'Racing',
+	'sports': 'Sports',
+	'basketball': 'Sports',
+	'role-playing': 'Role-playing (RPG)',
+	'puzzle': 'Puzzle',
+	'simulation': 'Simulation',
+	'strategy': 'Strategy',
+	'real-time strategy': 'Strategy',
+	'music': 'Music',
+	'dance': 'Music',
+	'karaoke': 'Music',
+	'party': 'Mini Games',
+	'board game': 'Board',
+	'chess': 'Board',
+	'cards': 'Card',
+	'poker': 'Card',
+	'trivia': 'Quiz',
+	'pinball': 'Pinball',
+	'educational': 'Educational',
+	'compilation': 'Compilation',
+	'survival horror': 'Survival Horror',
+	'interactive fiction': 'Adventure / Interactive Fiction'
+}
+
+// Controllers with an analog stick.
+const analogControls = ['nunchuk', 'gamecube', 'classiccontroller', 'procontroller', 'pad']
+
 const languageCodes = ['EN', 'FR', 'IT', 'ES', 'DE', 'NL', 'PT', 'JA', 'SV', 'FI', 'PL', 'CS', 'HU']
 
 /**
@@ -124,10 +164,32 @@ function gameToEntry(game, type) {
 		}
 	}
 
-	// ESRB Rating
-	if (game.rating) {
-		if (game.rating[0]['$'].type == 'ESRB') {
-			output.esrb_rating = game.rating[0]['$'].value
+	// Genre, using the most specific one GameTDB lists, like "action,platformer" to "Platform"
+	if (game.genre && typeof game.genre[0] == 'string') {
+		for (const genre of game.genre[0].split(',')) {
+			output.genre = genreNames[genre.trim()] || output.genre
+		}
+	}
+
+	// Analog support
+	const input = game.input && game.input[0]
+	if (input && input.control && input.control.some(control => analogControls.includes(control.$.type))) {
+		output.analog = 1
+	}
+
+	// Age Ratings
+	if (game.rating && game.rating[0].$ && game.rating[0].$.value) {
+		const rating = game.rating[0].$
+		switch (rating.type) {
+			case 'ESRB':
+				output.esrb_rating = rating.value
+				break
+			case 'PEGI':
+				output.pegi_rating = rating.value
+				break
+			case 'CERO':
+				output.cero_rating = rating.value
+				break
 		}
 	}
 
@@ -211,6 +273,21 @@ function datEntry(game, extension) {
 	}
 	if (game.esrb_rating) {
 		gameEntries += `\n	esrb_rating "${cleanValue(game.esrb_rating)}"`
+	}
+	if (game.pegi_rating) {
+		gameEntries += `\n	pegi_rating "${cleanValue(game.pegi_rating)}"`
+	}
+	if (game.cero_rating) {
+		gameEntries += `\n	cero_rating "${cleanValue(game.cero_rating)}"`
+	}
+	if (game.regionName) {
+		gameEntries += `\n	region "${cleanValue(game.regionName)}"`
+	}
+	if (game.genre) {
+		gameEntries += `\n	genre "${cleanValue(game.genre)}"`
+	}
+	if (game.analog) {
+		gameEntries += `\n	analog 1`
 	}
 
 	const gameName = cleanTitle(cleanValue(game.name))

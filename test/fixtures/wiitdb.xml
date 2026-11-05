@@ -11,15 +11,23 @@
 		<developer>Nintendo</developer>
 		<publisher>Nintendo</publisher>
 		<date year="2007" month="2" day="19"/>
+		<genre>software</genre>
 		<rating type="ESRB" value="E"/>
-		<input players="1"/>
+		<input players="1">
+			<control type="wiimote" required="true"/>
+		</input>
 	</game>
 	<game name="DEAD SPACE (Europe) (EN,DE)">
 		<id>RDSP69</id>
 		<type/>
 		<region>PAL</region>
 		<developer>EA "Redwood"</developer>
-		<input players="0"/>
+		<genre>action,shooter,horror</genre>
+		<rating type="PEGI" value="18"/>
+		<input players="0">
+			<control type="wiimote" required="true"/>
+			<control type="nunchuk" required="true"/>
+		</input>
 	</game>
 	<game name="Pokémon Colosseum (Korea) (KO)">
 		<id>GC6K01</id>
@@ -28,6 +36,11 @@
 		<locale lang="EN">
 			<title>Pokémon Colosseum</title>
 		</locale>
+		<genre>role-playing</genre>
+		<rating type="GRB" value="ALL"/>
+		<input players="2">
+			<control type="gamecube" required="true"/>
+		</input>
 	</game>
 	<game name="Ōkami (Japan) (JA)">
 		<id>ROWJ08</id>
@@ -36,6 +49,7 @@
 		<locale lang="JA">
 			<title>大神</title>
 		</locale>
+		<rating type="CERO" value="C"/>
 	</game>
 	<game name="No ID (USA) (EN)">
 		<type/>
