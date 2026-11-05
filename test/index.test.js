@@ -23,28 +23,28 @@ test('readDB parses games', async () => {
 
 test('gameToEntry maps fields and regions', async () => {
 	const games = await readDB(fixture)
-	const erase = gameToEntry(games[0], 'Wii')
+	const erase = gameToEntry(games[0])
 	assert.strictEqual(erase.name, 'Auto Erase Disc (USA)')
 	assert.strictEqual(erase.serial, '007E01')
 	assert.strictEqual(erase.esrb_rating, 'E')
 	assert.strictEqual(erase.releaseyear, '2007')
 	assert.strictEqual(erase.type, 'Wii')
-	assert.strictEqual(erase.regionName, 'USA')
+	assert.strictEqual(erase.region, 'USA')
 	assert.strictEqual(erase.genre, undefined)
 	assert.strictEqual(erase.analog, undefined)
 
-	const deadSpace = gameToEntry(games[1], 'Wii')
+	const deadSpace = gameToEntry(games[1])
 	assert.strictEqual(deadSpace.genre, 'Shooter')
 	assert.strictEqual(deadSpace.pegi_rating, '18')
 	assert.strictEqual(deadSpace.esrb_rating, undefined)
 	assert.strictEqual(deadSpace.analog, 1)
 
-	assert.strictEqual(gameToEntry(games[3], 'Wii').cero_rating, 'C')
+	assert.strictEqual(gameToEntry(games[3]).cero_rating, 'C')
 
-	assert.strictEqual(gameToEntry(games[1], 'Wii').name, 'DEAD SPACE (Europe) (En,De)')
-	assert.strictEqual(gameToEntry(games[2], 'GameCube').name, 'Pokémon Colosseum (Korea)')
-	assert.strictEqual(gameToEntry(games[2], 'GameCube').type, 'GameCube')
-	assert.strictEqual(gameToEntry(games[4], 'Wii'), null)
+	assert.strictEqual(gameToEntry(games[1]).name, 'DEAD SPACE (Europe) (En,De)')
+	assert.strictEqual(gameToEntry(games[2]).name, 'Pokémon Colosseum (Korea)')
+	assert.strictEqual(gameToEntry(games[2]).type, 'GameCube')
+	assert.strictEqual(gameToEntry(games[4]), null)
 })
 
 test('getDatabase skips games without an ID', async () => {
@@ -56,7 +56,7 @@ test('getDatabase skips games without an ID', async () => {
 
 test('getDat writes the header and entries', async () => {
 	const games = await readDB(fixture)
-	const dat = getDat(getDatabase(games, 'GameCube'), 'GameCube', 'Nintendo', 'Nintendo', 'iso', '2026.11.05')
+	const dat = getDat(getDatabase(games, 'GameCube'), 'Nintendo - Nintendo GameCube', 'iso', '2026.11.05')
 	assert.strictEqual(dat, `clrmamepro (
 	name "Nintendo - Nintendo GameCube"
 	description "Nintendo - Nintendo GameCube"
@@ -82,7 +82,7 @@ game (
 
 test('getDat cleans quotes and skips zero users', async () => {
 	const games = await readDB(fixture)
-	const dat = getDat(getDatabase(games, 'Wii'), 'Wii', 'Nintendo', 'Nintendo', 'iso')
+	const dat = getDat(getDatabase(games, 'Wii'), 'Nintendo - Nintendo Wii', 'iso')
 	assert.match(dat, /version "\d{4}\.\d{2}\.\d{2}"/)
 	assert.match(dat, /developer "EA 'Redwood'"/)
 	assert.match(dat, /users 1\n/)
