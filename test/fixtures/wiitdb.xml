@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datafile>
+	<WiiTDB version="20261105061711" games="5"/>
+	<game name="Auto Erase Disc (USA) (EN)">
+		<id>007E01</id>
+		<type/>
+		<region>NTSC-U</region>
+		<locale lang="EN">
+			<title>Auto Erase Disc</title>
+		</locale>
+		<developer>Nintendo</developer>
+		<publisher>Nintendo</publisher>
+		<date year="2007" month="2" day="19"/>
+		<rating type="ESRB" value="E"/>
+		<input players="1"/>
+	</game>
+	<game name="DEAD SPACE (Europe) (EN,DE)">
+		<id>RDSP69</id>
+		<type/>
+		<region>PAL</region>
+		<developer>EA "Redwood"</developer>
+		<input players="0"/>
+	</game>
+	<game name="Pokémon Colosseum (Korea) (KO)">
+		<id>GC6K01</id>
+		<type>GameCube</type>
+		<region>NTSC-K</region>
+		<locale lang="EN">
+			<title>Pokémon Colosseum</title>
+		</locale>
+	</game>
+	<game name="Ōkami (Japan) (JA)">
+		<id>ROWJ08</id>
+		<type/>
+		<region>NTSC-J</region>
+		<locale lang="JA">
+			<title>大神</title>
+		</locale>
+	</game>
+	<game name="No ID (USA) (EN)">
+		<type/>
+		<region>NTSC-U</region>
+	</game>
+</datafile>

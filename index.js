@@ -1,31 +1,54 @@
 const fs = require('fs')
-const http = require('http')
-const fileExists = require('file-exists')
-const decompress = require('decompress');
-const rimraf = require('rimraf')
+const https = require('https')
+const decompress = require('decompress')
 const xml2js = require('xml2js')
-const pkg = require('./package.json')
 const arraySort = require('array-sort')
+const pkg = require('./package.json')
 
-function downloadDB(url, filename) {
+const regionNames = {
+	'NTSC-U': 'USA',
+	'NTSC-J': 'Japan',
+	'NTSC-K': 'Korea',
+	'NTSC-T': 'Taiwan',
+	'NTSC-A': 'Asia',
+	'PAL': 'Europe',
+	'PAL-R': 'Russia'
+}
+
+const languageCodes = ['EN', 'FR', 'IT', 'ES', 'DE', 'NL', 'PT', 'JA', 'SV', 'FI', 'PL', 'CS', 'HU']
+
+/**
+ * Download the given URL to the given file, following redirects.
+ */
+function downloadDB(url, filename, useCache = false, redirects = 5) {
+	if (useCache && fs.existsSync(filename)) {
+		console.log(`Using cached ${filename}`)
+		return Promise.resolve()
+	}
+
 	return new Promise((resolve, reject) => {
-		if (fileExists.sync(filename)) {
-			console.log('skip download')
-			return resolve()
-		}
+		https.get(url, (response) => {
+			const { statusCode, headers } = response
+			if (statusCode >= 300 && statusCode < 400 && headers.location && redirects > 0) {
+				response.resume()
+				const location = new URL(headers.location, url).toString()
+				return downloadDB(location, filename, false, redirects - 1).then(resolve, reject)
+			}
+			if (statusCode !== 200) {
+				response.resume()
+				return reject(new Error(`Failed to download ${url}: HTTP ${statusCode}`))
+			}
 
-		var file = fs.createWriteStream(filename);
-		var request = http.get(url, function(response) {
-			console.log(response)
-			response.pipe(file);
-		})
-		file.on('finish', () => {
-			resolve()
-		})
-		file.on('error', () => {
-			console.log("nooooooo")
-			reject()
-		})
+			const partial = filename + '.part'
+			const file = fs.createWriteStream(partial)
+			response.on('error', reject)
+			file.on('error', reject)
+			file.on('finish', () => {
+				fs.renameSync(partial, filename)
+				resolve()
+			})
+			response.pipe(file)
+		}).on('error', reject)
 	})
 }
 
@@ -39,10 +62,12 @@ function readDB(filename = 'dist/wiitdb.xml') {
 			if (err) {
 				return reject(err)
 			}
-			data = data.toString().replace('	<3DSTDB', '	<version')
-			xml2js.parseString(data, (err, result) => {
+			xml2js.parseString(data.toString(), (err, result) => {
 				if (err) {
 					return reject(err)
+				}
+				if (!result || !result.datafile || !result.datafile.game) {
+					return reject(new Error(`No games found in ${filename}`))
 				}
 				resolve(result.datafile.game)
 			})
@@ -50,45 +75,32 @@ function readDB(filename = 'dist/wiitdb.xml') {
 	})
 }
 
+/**
+ * Title-case the language codes in a GameTDB name, like "(EN,FR)" to "(En,Fr)".
+ */
+function cleanLanguages(name) {
+	return name.replace(/\(([A-Z]{2,4}(?:,[A-Z]{2,4})*)\)/g, (match, codes) => {
+		return '(' + codes.split(',').map(code => {
+			return languageCodes.includes(code) ? code[0] + code.slice(1).toLowerCase() : code
+		}).join(',') + ')'
+	})
+}
+
 function gameToEntry(game, type) {
-	output = {}
-	output.name = game['$'] ? game['$'].name : ''
-	let nameReplacements = {
-		'EN': 'En',
-		'FR': 'Fr',
-		'IT': 'It',
-		'ES': 'Es',
-		'DE': 'De',
-		'NL': 'Nl',
-		'PT': 'Pt',
-		'JA': 'Ja',
-		'SV': 'Sv',
-		'FI': 'Fi',
-		'PL': 'Pl',
-		'CS': 'Cs',
-		'HU': 'Hu',
-		'°': ''
+	const serial = game.id ? game.id[0] : ''
+	if (!serial) {
+		return null
 	}
-	for (let original in nameReplacements) {
-		output.name = output.name.replace(original, nameReplacements[original])
-	}
+
+	const output = {}
+	output.name = cleanLanguages(game['$'] ? game['$'].name : '').replaceAll('°', '')
 
 	output.region = game.region ? game.region[0] : 'NTSC-U'
-	switch (output.region) {
-		case 'NTSC-U':
-			output.regionName = 'USA'
-			break;
-		case 'NTSC-J':
-			output.regionName = 'Japan'
-			break;
-		case 'PAL':
-			output.regionName = 'Europe'
-			break
-	}
+	output.regionName = regionNames[output.region]
 
-	for (let id in game.locale) {
-		if (game.locale[id].$.lang == 'EN' && game.locale[id].title && game.locale[id].title[0]) {
-			output.name = game.locale[id].title[0]
+	for (const locale of game.locale || []) {
+		if (locale.$.lang == 'EN' && locale.title && locale.title[0]) {
+			output.name = locale.title[0]
 			if (output.regionName) {
 				output.name += ' (' + output.regionName + ')'
 			}
@@ -97,16 +109,16 @@ function gameToEntry(game, type) {
 
 	// Clean up Japanese titles
 	if (output.name == " (Japan) (Ja)" || output.name == " (Korea) (KO)") {
-		for (let id in game.locale) {
-			if (game.locale[id].$.lang == 'JA' || game.locale[id].$.lang == 'KO') {
-				output.name = game.locale[id].title[0]
+		for (const locale of game.locale || []) {
+			if (locale.$.lang == 'JA' || locale.$.lang == 'KO') {
+				output.name = locale.title[0]
 			}
 		}
 	}
 
 	// Amount of players/users
 	if (game.input) {
-		let input = game.input
+		const input = game.input
 		if (input[0] && input[0]['$'] && input[0]['$'].players) {
 			output.users = input[0]['$'].players
 		}
@@ -119,8 +131,7 @@ function gameToEntry(game, type) {
 		}
 	}
 
-	// Serial Number
-	output.serial = game.id ? game.id[0] : ''
+	output.serial = serial
 
 	// Developer
 	output.developer = game.developer ? game.developer[0] : ''
@@ -138,14 +149,22 @@ function gameToEntry(game, type) {
 		}
 	}
 
-	return output.serial ? output : null
+	return output
 }
 
-function header(name, vendor, consoleParent) {
+/**
+ * The DAT version, which is the date it was generated.
+ */
+function today() {
+	return new Date().toISOString().slice(0, 10).replaceAll('-', '.')
+}
+
+function header(name, vendor, consoleParent, extensions, version = today()) {
 	return `clrmamepro (
 	name "${vendor} - ${consoleParent} ${name}"
 	description "${vendor} - ${consoleParent} ${name}"
-	version "${pkg.version}"
+	version "${version}"
+	extensions "${extensions.join('|')}"
 	homepage "${pkg.homepage}"
 )\n`
 }
@@ -157,18 +176,21 @@ function cleanValue(val) {
 	return val.replace(new RegExp('"', 'g'), '\'')
 }
 
+/**
+ * Strip accents from Latin characters, like "é" to "e".
+ */
 function cleanTitle(val) {
 	return val
-		.replaceAll('é', 'e')
-		.replaceAll('Ō', 'O')
-		.replaceAll('ō', 'o')
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.normalize('NFC')
 }
 
 /**
  * Construct a DAT entry based on the given game.
  */
 function datEntry(game, extension) {
-	gameEntries = ''
+	let gameEntries = ''
 	if (game.developer) {
 		gameEntries += `\n	developer "${cleanValue(game.developer)}"`
 	}
@@ -190,12 +212,12 @@ function datEntry(game, extension) {
 	if (game.esrb_rating) {
 		gameEntries += `\n	esrb_rating "${cleanValue(game.esrb_rating)}"`
 	}
-	
-	let gameName = cleanTitle(cleanValue(game.name))
+
+	const gameName = cleanTitle(cleanValue(game.name))
 	return `
 game (
 	name "${gameName}"
-	serial "${game.serial}"${gameEntries}
+	serial "${cleanValue(game.serial)}"${gameEntries}
 	rom (
 		name "${gameName}.${extension}"
 		serial "${cleanValue(game.serial)}"
@@ -205,100 +227,70 @@ game (
 }
 
 function getDatabase(games, type = null) {
-	database = []
-
-	for (id in games) {
-		game = gameToEntry(games[id], type)
-		if (type == null || game.type == type) {
-			database.push(game)
-		}
-	}
-
-	database = arraySort(database, ['name', 'serial'])
-
-	return database
+	const database = games
+		.map(game => gameToEntry(game, type))
+		.filter(game => game && (type == null || game.type == type))
+	return arraySort(database, ['name', 'serial'])
 }
 
-function getDat(database, name, vendor, consoleParent, extension) {
-	output = header(name, vendor, consoleParent)
-	for (id in database) {
-		output += datEntry(database[id], extension)
-	}
-	return output
+function getDat(database, name, vendor, consoleParent, extension, version) {
+	return header(name, vendor, consoleParent, [extension], version) +
+		database.map(game => datEntry(game, extension)).join('')
 }
 
-async function engage() {
-	try {
-		console.log('Wii/GameCube')
-		await downloadDB('http://www.gametdb.com/wiitdb.zip', 'wiitdb.zip')
-		await extractDB('wiitdb.zip')
-		let games = await readDB('dist/wiitdb.xml')
-		let types = ['Wii', 'GameCube'];
-		for (let index = 0; index < types.length; ++index) {
-		    let type = types[index];
-			let database = getDatabase(games, type)
-			let dat = getDat(database, type, 'Nintendo', 'Nintendo', 'iso')
-			fs.writeFileSync('libretro-database/dat/Nintendo - ' + type + '.dat', dat)
-		}
-
-		console.log('Sony PlayStation 3')
-		await downloadDB('http://www.gametdb.com/ps3tdb.zip', 'ps3tdb.zip')
-		await extractDB('ps3tdb.zip')
-		games = await readDB('dist/ps3tdb.xml')
-		let ps3database = getDatabase(games)
-		let ps3dat = getDat(ps3database, '3', 'Sony', 'PlayStation', 'iso')
-		fs.writeFileSync('libretro-database/dat/Sony - PlayStation 3.dat', ps3dat)
-
-		console.log('Nintendo Wii U')
-		await downloadDB('http://www.gametdb.com/wiiutdb.zip', 'wiiutdb.zip')
-		await extractDB('wiiutdb.zip')
-		games = await readDB('dist/wiiutdb.xml')
-		let wiiudatabase = getDatabase(games)
-		let wiiudat = getDat(wiiudatabase, 'Wii U', 'Nintendo', 'Nintendo', 'wux')
-		fs.writeFileSync('libretro-database/dat/Nintendo - Wii U.dat', wiiudat)
-
-		/*
-		TODO: Add a Switch libretro core.
-		console.log('Nintendo Switch')
-		await downloadDB('http://www.gametdb.com/switchtdb.zip', 'switchtdb.zip')
-		await extractDB('switchtdb.zip')
-		games = await readDB('dist/switchtdb.xml')
-		let switchdatabase = getDatabase(games)
-		let switchdat = getDat(switchdatabase, 'Switch', 'Nintendo', 'Nintendo')
-		fs.writeFileSync('libretro-database/dat/Nintendo - Switch.dat', switchdat)
-		*/
-
-		/*
-		TODO: Add serial scanning to Nintendo DS?
-		console.log('Nintendo DS')
-		await downloadDB('http://www.gametdb.com/dstdb.zip?LANG=EN', 'dstdb.zip')
-		await extractDB('dstdb.zip')
-		games = await readDB('dist/dstdb.xml')
-		let dsdatabase = getDatabase(games)
-		let dsdat = getDat(dsdatabase, 'DS', 'Nintendo', 'Nintendo')
-		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo DS.dat', dsdat)
-		*/
-
-		/*
-		// Nintendo 3DS -- GameTDB doesn't provide CRCs, which is what 3DS REtroArch scanning uses currently
-		console.log('Nintendo 3DS')
-		await downloadDB('http://www.gametdb.com/3dstdb.zip?LANG=EN', '3dstdb.zip')
-		await extractDB('3dstdb.zip')
-		games = await readDB('dist/3dstdb.xml')
-		let threedsdatabase = getDatabase(games)
-		let threedsdat = getDat(threedsdatabase, '3DS', 'Nintendo', 'Nintendo', '3ds')
-		fs.writeFileSync('libretro-database/dat/Nintendo - Nintendo 3DS.dat', threedsdat)
-		*/
+async function buildDat(source, outputs, useCache) {
+	await downloadDB(`https://www.gametdb.com/${source}.zip`, `${source}.zip`, useCache)
+	await extractDB(`${source}.zip`)
+	const games = await readDB(`dist/${source}.xml`)
+	for (const { type, name, vendor, consoleParent, extension, file } of outputs) {
+		const database = getDatabase(games, type)
+		fs.writeFileSync(`libretro-database/dat/${file}.dat`, getDat(database, name, vendor, consoleParent, extension))
 	}
-	catch (e) {
+}
+
+async function main(args = process.argv.slice(2)) {
+	if (!fs.existsSync('libretro-database/dat')) {
+		throw new Error('libretro-database/dat not found. Run `git submodule update --init`.')
+	}
+	const useCache = args.includes('--cached')
+
+	console.log('Wii/GameCube')
+	await buildDat('wiitdb', [
+		{ type: 'Wii', name: 'Wii', vendor: 'Nintendo', consoleParent: 'Nintendo', extension: 'iso', file: 'Nintendo - Wii' },
+		{ type: 'GameCube', name: 'GameCube', vendor: 'Nintendo', consoleParent: 'Nintendo', extension: 'iso', file: 'Nintendo - GameCube' }
+	], useCache)
+
+	console.log('Sony PlayStation 3')
+	await buildDat('ps3tdb', [
+		{ name: '3', vendor: 'Sony', consoleParent: 'PlayStation', extension: 'iso', file: 'Sony - PlayStation 3' }
+	], useCache)
+
+	console.log('Nintendo Wii U')
+	await buildDat('wiiutdb', [
+		{ name: 'Wii U', vendor: 'Nintendo', consoleParent: 'Nintendo', extension: 'wux', file: 'Nintendo - Wii U' }
+	], useCache)
+
+	// TODO: Nintendo Switch (switchtdb), once there is a Switch libretro core.
+	// TODO: Nintendo DS (dstdb), if RetroArch adds serial scanning for it.
+	// Nintendo 3DS (3dstdb) is skipped, as GameTDB doesn't provide the CRCs RetroArch scans with.
+}
+
+if (require.main === module) {
+	main().catch((e) => {
 		console.error(e)
-	}
+		process.exitCode = 1
+	})
 }
 
-
-try {
-engage()
-}
-catch (e) {
-	console.error(e)
+module.exports = {
+	cleanLanguages,
+	cleanTitle,
+	cleanValue,
+	datEntry,
+	downloadDB,
+	gameToEntry,
+	getDat,
+	getDatabase,
+	header,
+	readDB
 }
