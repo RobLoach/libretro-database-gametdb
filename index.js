@@ -341,8 +341,9 @@ function cleanTitle(val) {
 function datEntry(game, extension) {
 	let gameEntries = ''
 	for (const [key, quoted] of datFields) {
-		if (game[key]) {
-			const value = cleanValue(game[key])
+		const value = cleanValue(game[key])
+		// Skip missing values, and unknown ones like "?????????"
+		if (game[key] && !/\?{4,}/.test(value)) {
 			gameEntries += `\n	${key} ${quoted ? `"${value}"` : value}`
 		}
 	}

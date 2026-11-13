@@ -1,7 +1,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert')
 const path = require('path')
-const { cleanCompanies, cleanDescription, cleanLanguages, cleanTitle, gameToEntry, getDat, getDatabase, readDB } = require('..')
+const { cleanCompanies, cleanDescription, cleanLanguages, cleanTitle, datEntry, gameToEntry, getDat, getDatabase, readDB } = require('..')
 
 const fixture = path.join(__dirname, 'fixtures', 'wiitdb.xml')
 
@@ -164,4 +164,11 @@ test('getDat cleans quotes and skips zero users', async () => {
 	assert.doesNotMatch(dat, /users 0/)
 	assert.match(dat, /pegi_rating "18"\n	region "Europe"\n	language "English \/ German"\n	genre "Action \/ Shooter"\n	analog 1\n	controls "Wii Remote \/ Nunchuk \/ Classic Controller"\n/)
 	assert.match(dat, /cero_rating "C"\n	region "Japan"\n/)
+})
+
+test('datEntry skips unknown values', () => {
+	const dat = datEntry({ name: 'Game (USA)', serial: 'ABCD01', developer: '?????????', publisher: 'Nintendo?', description: 'Who??? What????' }, 'iso')
+	assert.doesNotMatch(dat, /developer/)
+	assert.doesNotMatch(dat, /description/)
+	assert.match(dat, /publisher "Nintendo\?"/)
 })
