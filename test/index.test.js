@@ -36,11 +36,11 @@ test('cleanDescription puts it on one line and cuts it off', () => {
 	assert.strictEqual(cleanDescription('  Jump\n\n and  run. '), 'Jump and run.')
 	assert.strictEqual(cleanDescription(''), undefined)
 	assert.strictEqual(cleanDescription(undefined), undefined)
-	assert.strictEqual(cleanDescription('a'.repeat(300)), 'a'.repeat(300))
-	assert.strictEqual(cleanDescription('a'.repeat(301)), 'a'.repeat(297) + '...')
+	assert.strictEqual(cleanDescription('a'.repeat(140)), 'a'.repeat(140))
+	assert.strictEqual(cleanDescription('a'.repeat(141)), 'a'.repeat(137) + '...')
 	const long = cleanDescription('Mario jumps, '.repeat(30))
-	assert.strictEqual(long, 'Mario jumps, '.repeat(22) + 'Mario...')
-	assert.ok(long.length <= 300)
+	assert.strictEqual(long, 'Mario jumps, '.repeat(10) + 'Mario...')
+	assert.ok(long.length <= 140)
 })
 
 test('cleanTitle strips accents and keeps other scripts', () => {

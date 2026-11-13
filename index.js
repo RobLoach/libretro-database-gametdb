@@ -84,7 +84,7 @@ const controlNames = {
 }
 
 // The longest description, after which it is cut off with "...".
-const descriptionLength = 300
+const descriptionLength = 140
 
 const ratingTypes = ['ESRB', 'PEGI', 'CERO']
 
