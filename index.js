@@ -193,9 +193,13 @@ function gameToEntry(game) {
 		entry.analog = 1
 	}
 
-	// Genre, using the most specific one GameTDB lists, like "action,platformer" to "Platform"
+	// Genres, like "action,platformer" to "Action / Platform"
 	const genres = typeof game.genre?.[0] == 'string' ? game.genre[0].split(',') : []
-	entry.genre = genres.map(genre => genreNames[genre.trim()]).filter(Boolean).pop()
+	const genreList = [...new Set(genres.map(genre => genreNames[genre.trim()]).filter(Boolean))]
+	// Skip genres that a more specific one includes, like "Adventure" in "Adventure / Interactive Fiction"
+	entry.genre = genreList
+		.filter(genre => !genreList.some(other => other.startsWith(genre + ' / ')))
+		.join(' / ') || undefined
 
 	// Age Rating
 	const rating = game.rating?.[0]?.$

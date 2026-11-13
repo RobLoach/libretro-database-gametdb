@@ -36,7 +36,7 @@ test('gameToEntry maps fields and regions', async () => {
 	assert.deepStrictEqual(erase.roms, [])
 
 	const deadSpace = gameToEntry(games[1])
-	assert.strictEqual(deadSpace.genre, 'Shooter')
+	assert.strictEqual(deadSpace.genre, 'Action / Shooter')
 	assert.strictEqual(deadSpace.pegi_rating, '18')
 	assert.strictEqual(deadSpace.esrb_rating, undefined)
 	assert.strictEqual(deadSpace.analog, 1)
@@ -44,6 +44,7 @@ test('gameToEntry maps fields and regions', async () => {
 	assert.deepStrictEqual(deadSpace.roms, [])
 
 	assert.strictEqual(gameToEntry(games[3]).cero_rating, 'C')
+	assert.strictEqual(gameToEntry(games[3]).genre, 'Action / Platform / Adventure / Interactive Fiction')
 
 	assert.strictEqual(gameToEntry(games[1]).name, 'DEAD SPACE (Europe) (En,De)')
 	assert.strictEqual(gameToEntry(games[2]).name, 'Pokémon Colosseum (Korea)')
@@ -121,6 +122,6 @@ test('getDat cleans quotes and skips zero users', async () => {
 	assert.match(dat, /developer "EA 'Redwood'"/)
 	assert.match(dat, /users 1\n/)
 	assert.doesNotMatch(dat, /users 0/)
-	assert.match(dat, /pegi_rating "18"\n	region "Europe"\n	language "English \/ German"\n	genre "Shooter"\n	analog 1\n/)
+	assert.match(dat, /pegi_rating "18"\n	region "Europe"\n	language "English \/ German"\n	genre "Action \/ Shooter"\n	analog 1\n/)
 	assert.match(dat, /cero_rating "C"\n	region "Japan"\n/)
 })
