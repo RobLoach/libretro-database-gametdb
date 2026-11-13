@@ -84,6 +84,9 @@ const languageNames = {
 
 const languageCodes = ['EN', 'FR', 'IT', 'ES', 'DE', 'NL', 'PT', 'JA', 'SV', 'FI', 'PL', 'CS', 'HU']
 
+// Company suffixes that follow a comma, like "Nintendo Co., Ltd.", which aren't separate companies.
+const companySuffixes = ['inc', 'ltd', 'llc', 'co', 'corp', 'limited', 'gmbh', 'pty', 'plc', 's.a']
+
 // The optional DAT fields, in the order they are written, and whether they are quoted.
 const datFields = [
 	['developer', true],
@@ -139,6 +142,34 @@ function cleanLanguages(name) {
 	})
 }
 
+/**
+ * Separate the companies with slashes, like "Namco, tri-Crescendo" to "Namco / tri-Crescendo".
+ */
+function cleanCompanies(value) {
+	if (typeof value != 'string' || value.trim() == 'N/A') {
+		return undefined
+	}
+
+	// Split on commas, keeping suffixes like ", Inc." with their company
+	const companies = []
+	for (const part of value.split(/,(?=\s)/)) {
+		const word = part.trim().toLowerCase()
+		const isSuffix = companySuffixes.some(suffix => word.startsWith(suffix) && [undefined, '.', '/'].includes(word[suffix.length]))
+		if (isSuffix && companies.length > 0) {
+			companies[companies.length - 1] += ',' + part
+		} else {
+			companies.push(part)
+		}
+	}
+
+	// Split on slashes, except in web addresses like "wiimm.de/r/mkw"
+	return [...new Set(companies
+		.flatMap(company => /\w\.\w+\//.test(company) ? [company] : company.split('/'))
+		.map(company => company.trim())
+		.filter(Boolean)
+	)].join(' / ') || undefined
+}
+
 function gameToEntry(game) {
 	const serial = game.id?.[0]
 	if (!serial) {
@@ -149,8 +180,8 @@ function gameToEntry(game) {
 	const entry = {
 		name: cleanLanguages(game.$?.name ?? '').replaceAll('°', ''),
 		serial,
-		developer: game.developer?.[0],
-		publisher: game.publisher?.[0],
+		developer: cleanCompanies(game.developer?.[0]),
+		publisher: cleanCompanies(game.publisher?.[0]),
 		releaseyear: date?.year,
 		releasemonth: date?.month,
 		releaseday: date?.day,
@@ -351,6 +382,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+	cleanCompanies,
 	cleanLanguages,
 	cleanTitle,
 	cleanValue,

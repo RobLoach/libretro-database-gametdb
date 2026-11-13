@@ -1,7 +1,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert')
 const path = require('path')
-const { cleanLanguages, cleanTitle, gameToEntry, getDat, getDatabase, readDB } = require('..')
+const { cleanCompanies, cleanLanguages, cleanTitle, gameToEntry, getDat, getDatabase, readDB } = require('..')
 
 const fixture = path.join(__dirname, 'fixtures', 'wiitdb.xml')
 
@@ -9,6 +9,27 @@ test('cleanLanguages only changes language codes', () => {
 	assert.strictEqual(cleanLanguages('DEAD SPACE (Europe) (EN,DE)'), 'DEAD SPACE (Europe) (En,De)')
 	assert.strictEqual(cleanLanguages('ENDLESS OCEAN (USA) (EN)'), 'ENDLESS OCEAN (USA) (En)')
 	assert.strictEqual(cleanLanguages('Game (USA) (EN,ZHCN)'), 'Game (USA) (En,ZHCN)')
+})
+
+test('cleanCompanies separates companies with slashes', () => {
+	assert.strictEqual(cleanCompanies('Namco, tri-Crescendo'), 'Namco / tri-Crescendo')
+	assert.strictEqual(cleanCompanies('Beenox/Vicarious Visions'), 'Beenox / Vicarious Visions')
+	assert.strictEqual(cleanCompanies('Take 2 Interactive / 2K Sports'), 'Take 2 Interactive / 2K Sports')
+	assert.strictEqual(cleanCompanies('Bean/TFG/JJ, Bean'), 'Bean / TFG / JJ')
+	assert.strictEqual(cleanCompanies('Nintendo'), 'Nintendo')
+	assert.strictEqual(cleanCompanies('N/A'), undefined)
+	assert.strictEqual(cleanCompanies(''), undefined)
+	assert.strictEqual(cleanCompanies(undefined), undefined)
+})
+
+test('cleanCompanies keeps company suffixes and web addresses', () => {
+	assert.strictEqual(cleanCompanies('HUDSON SOFT CO., LTD.'), 'HUDSON SOFT CO., LTD.')
+	assert.strictEqual(cleanCompanies('Other Ocean Group, Inc., Nintendo'), 'Other Ocean Group, Inc. / Nintendo')
+	assert.strictEqual(cleanCompanies('Coca-Cola (Japan) Company, Limited'), 'Coca-Cola (Japan) Company, Limited')
+	assert.strictEqual(cleanCompanies('EnsenaSoft, S.A. de C.V.'), 'EnsenaSoft, S.A. de C.V.')
+	assert.strictEqual(cleanCompanies('Activision, LLC/Raven'), 'Activision, LLC / Raven')
+	assert.strictEqual(cleanCompanies('38,9_Degrees'), '38,9_Degrees')
+	assert.strictEqual(cleanCompanies('Wiimm, wiimm.de/r/mkw/fun'), 'Wiimm / wiimm.de/r/mkw/fun')
 })
 
 test('cleanTitle strips accents and keeps other scripts', () => {
