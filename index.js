@@ -55,6 +55,33 @@ const analogControls = ['nunchuk', 'gamecube', 'classiccontroller', 'procontroll
 
 const ratingTypes = ['ESRB', 'PEGI', 'CERO']
 
+// GameTDB language codes mapped to their names.
+const languageNames = {
+	EN: 'English',
+	JA: 'Japanese',
+	FR: 'French',
+	ES: 'Spanish',
+	DE: 'German',
+	IT: 'Italian',
+	NL: 'Dutch',
+	PT: 'Portuguese',
+	SE: 'Swedish',
+	DK: 'Danish',
+	NO: 'Norwegian',
+	FI: 'Finnish',
+	RU: 'Russian',
+	PL: 'Polish',
+	CZ: 'Czech',
+	SK: 'Slovak',
+	HU: 'Hungarian',
+	GR: 'Greek',
+	TR: 'Turkish',
+	AR: 'Arabic',
+	KO: 'Korean',
+	ZHTW: 'Chinese (Traditional)',
+	ZHCN: 'Chinese (Simplified)'
+}
+
 const languageCodes = ['EN', 'FR', 'IT', 'ES', 'DE', 'NL', 'PT', 'JA', 'SV', 'FI', 'PL', 'CS', 'HU']
 
 // The optional DAT fields, in the order they are written, and whether they are quoted.
@@ -69,9 +96,13 @@ const datFields = [
 	['pegi_rating', true],
 	['cero_rating', true],
 	['region', true],
+	['language', true],
 	['genre', true],
 	['analog', false]
 ]
+
+// The optional ROM fields, in the order they are written.
+const romFields = ['size', 'crc', 'md5', 'sha1']
 
 /**
  * Download the given URL to the given file.
@@ -131,6 +162,20 @@ function gameToEntry(game) {
 	const english = game.locale?.findLast(locale => locale.$.lang == 'EN' && locale.title?.[0])
 	if (english) {
 		entry.name = english.title[0] + (entry.region ? ` (${entry.region})` : '')
+	}
+
+	// Languages, like "EN,FR" to "English / French"
+	const languages = typeof game.languages?.[0] == 'string' ? game.languages[0].split(',') : []
+	entry.language = languages.map(code => code.trim()).filter(Boolean)
+		.map(code => languageNames[code] ?? code).join(' / ') || undefined
+
+	// ROM size and hashes, from the first dump that has them
+	const rom = game.rom?.find(rom => rom.$?.crc)?.$
+	if (rom) {
+		entry.size = rom.size
+		entry.crc = rom.crc.toUpperCase()
+		entry.md5 = rom.md5?.toUpperCase()
+		entry.sha1 = rom.sha1?.toUpperCase()
 	}
 
 	// Amount of players/users, and analog support
@@ -201,13 +246,20 @@ function datEntry(game, extension) {
 		}
 	}
 
+	let romEntries = ''
+	for (const key of romFields) {
+		if (game[key]) {
+			romEntries += `\n		${key} ${cleanValue(game[key])}`
+		}
+	}
+
 	const gameName = cleanTitle(cleanValue(game.name))
 	return `
 game (
 	name "${gameName}"
 	serial "${cleanValue(game.serial)}"${gameEntries}
 	rom (
-		name "${gameName}.${extension}"
+		name "${gameName}.${extension}"${romEntries}
 		serial "${cleanValue(game.serial)}"
 	)
 )
