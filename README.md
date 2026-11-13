@@ -3,6 +3,9 @@
 Generates DAT files from [GameTDB](https://www.gametdb.com) for [libretro-database](https://github.com/libretro/libretro-database)'s entries:
 
 - `Nintendo - GameCube.dat`
+- `Nintendo - Nintendo 3DS.dat`
+- `Nintendo - Nintendo DS.dat`
+- `Nintendo - Nintendo Switch.dat`
 - `Nintendo - Wii.dat`
 - `Nintendo - Wii U.dat`
 - `Sony - PlayStation 3.dat`

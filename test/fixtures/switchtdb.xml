@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datafile>
+	<SwitchTDB version="20261113191122" games="2"/>
+	<game name="Quest Contents Install Tool (EN)">
+		<id>1CGNA</id>
+		<type>Switch</type>
+		<region>USA,EUR</region>
+		<languages>EN</languages>
+		<locale lang="EN">
+			<title>Quest Contents Install Tool</title>
+			<synopsis/>
+		</locale>
+		<publisher>Nintendo</publisher>
+		<input players="1">
+			<control type="joycon" required="false"/>
+			<control type="procontroller" required="false"/>
+		</input>
+		<rom version="1.0.0" name="Quest Contents Install Tool (EN) (v1.0.0).switch" crc="c4a2d267"/>
+		<rom version="1.0.2" name="Quest Contents Install Tool (EN) (v1.0.2).switch" crc="f9d4cb6c"/>
+	</game>
+	<game name="NEW Joe &amp; Mac - Caveman Ninja (EN)">
+		<id>A22UA</id>
+		<type>eShop</type>
+		<region>ALL,USA</region>
+		<languages>EN</languages>
+		<locale lang="EN">
+			<title>NEW Joe &amp; Mac - Caveman Ninja</title>
+			<synopsis/>
+		</locale>
+		<publisher>Microids</publisher>
+		<rating_ESRB value="E10+">
+			<descriptor_ESRB>fantasy violence</descriptor_ESRB>
+		</rating_ESRB>
+		<rating_PEGI value="7"/>
+		<input players="2">
+			<control type="joycon" required="false"/>
+			<control type="procontroller" required="false"/>
+		</input>
+		<rom version="" name="NEW Joe &amp; Mac - Caveman Ninja (EN).switch"/>
+	</game>
+</datafile>
