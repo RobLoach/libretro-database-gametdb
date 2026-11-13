@@ -1,7 +1,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert')
 const path = require('path')
-const { cleanCompanies, cleanLanguages, cleanTitle, gameToEntry, getDat, getDatabase, readDB } = require('..')
+const { cleanCompanies, cleanDescription, cleanLanguages, cleanTitle, gameToEntry, getDat, getDatabase, readDB } = require('..')
 
 const fixture = path.join(__dirname, 'fixtures', 'wiitdb.xml')
 
@@ -30,6 +30,17 @@ test('cleanCompanies keeps company suffixes and web addresses', () => {
 	assert.strictEqual(cleanCompanies('Activision, LLC/Raven'), 'Activision, LLC / Raven')
 	assert.strictEqual(cleanCompanies('38,9_Degrees'), '38,9_Degrees')
 	assert.strictEqual(cleanCompanies('Wiimm, wiimm.de/r/mkw/fun'), 'Wiimm / wiimm.de/r/mkw/fun')
+})
+
+test('cleanDescription puts it on one line and cuts it off', () => {
+	assert.strictEqual(cleanDescription('  Jump\n\n and  run. '), 'Jump and run.')
+	assert.strictEqual(cleanDescription(''), undefined)
+	assert.strictEqual(cleanDescription(undefined), undefined)
+	assert.strictEqual(cleanDescription('a'.repeat(300)), 'a'.repeat(300))
+	assert.strictEqual(cleanDescription('a'.repeat(301)), 'a'.repeat(297) + '...')
+	const long = cleanDescription('Mario jumps, '.repeat(30))
+	assert.strictEqual(long, 'Mario jumps, '.repeat(22) + 'Mario...')
+	assert.ok(long.length <= 300)
 })
 
 test('cleanTitle strips accents and keeps other scripts', () => {
@@ -63,6 +74,10 @@ test('gameToEntry maps fields and regions', async () => {
 	assert.strictEqual(deadSpace.analog, 1)
 	assert.strictEqual(deadSpace.language, 'English / German')
 	assert.deepStrictEqual(deadSpace.roms, [])
+	assert.strictEqual(deadSpace.controls, 'Wii Remote / Nunchuk / Classic Controller')
+	assert.strictEqual(deadSpace.description, undefined)
+	assert.strictEqual(erase.controls, 'Wii Remote')
+	assert.strictEqual(gameToEntry(games[2], 'Wii U GamePad').controls, 'GameCube Controller')
 
 	assert.strictEqual(gameToEntry(games[3]).cero_rating, 'C')
 	assert.strictEqual(gameToEntry(games[3]).genre, 'Action / Platform / Adventure / Interactive Fiction')
@@ -108,6 +123,8 @@ game (
 	language "Korean / XX"
 	genre "Role-playing (RPG)"
 	analog 1
+	controls "GameCube Controller"
+	description "Battle with 'Shadow' Pokémon."
 	rom (
 		name "Pokemon Colosseum (Korea).iso"
 		size 1459978240
@@ -126,6 +143,8 @@ game (
 	language "Korean / XX"
 	genre "Role-playing (RPG)"
 	analog 1
+	controls "GameCube Controller"
+	description "Battle with 'Shadow' Pokémon."
 	rom (
 		name "Pokemon Colosseum (Korea) (Rev 1).iso"
 		size 1459978240
@@ -143,6 +162,6 @@ test('getDat cleans quotes and skips zero users', async () => {
 	assert.match(dat, /developer "EA 'Redwood'"/)
 	assert.match(dat, /users 1\n/)
 	assert.doesNotMatch(dat, /users 0/)
-	assert.match(dat, /pegi_rating "18"\n	region "Europe"\n	language "English \/ German"\n	genre "Action \/ Shooter"\n	analog 1\n/)
+	assert.match(dat, /pegi_rating "18"\n	region "Europe"\n	language "English \/ German"\n	genre "Action \/ Shooter"\n	analog 1\n	controls "Wii Remote \/ Nunchuk \/ Classic Controller"\n/)
 	assert.match(dat, /cero_rating "C"\n	region "Japan"\n/)
 })

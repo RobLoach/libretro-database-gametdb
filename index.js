@@ -53,6 +53,39 @@ const genreNames = {
 // Controllers with an analog stick.
 const analogControls = ['nunchuk', 'gamecube', 'classiccontroller', 'procontroller', 'pad']
 
+// GameTDB controllers mapped to their names. "pad" is named per database, as it's the PS3 and Wii U controller.
+const controlNames = {
+	'wiimote': 'Wii Remote',
+	'nunchuk': 'Nunchuk',
+	'motionplus': 'Wii MotionPlus',
+	'classiccontroller': 'Classic Controller',
+	'gamecube': 'GameCube Controller',
+	'procontroller': 'Pro Controller',
+	'balanceboard': 'Balance Board',
+	'zapper': 'Wii Zapper',
+	'wiispeak': 'Wii Speak',
+	'nintendods': 'Nintendo DS',
+	'gameboy advance': 'Game Boy Advance',
+	'udraw': 'uDraw GameTablet',
+	'amiibo': 'amiibo',
+	'move': 'PlayStation Move',
+	'eye': 'PlayStation Eye',
+	'sharp shooter': 'Sharp Shooter',
+	'psp': 'PSP',
+	'psp (as remote)': 'PSP',
+	'guncon 3': 'GunCon 3',
+	'wheel': 'Wheel',
+	'guitar': 'Guitar',
+	'drums': 'Drums',
+	'microphone': 'Microphone',
+	'keyboard': 'Keyboard',
+	'dancepad': 'Dance Pad',
+	'3dglasses': '3D Glasses'
+}
+
+// The longest description, after which it is cut off with "...".
+const descriptionLength = 300
+
 const ratingTypes = ['ESRB', 'PEGI', 'CERO']
 
 // GameTDB language codes mapped to their names.
@@ -101,7 +134,9 @@ const datFields = [
 	['region', true],
 	['language', true],
 	['genre', true],
-	['analog', false]
+	['analog', false],
+	['controls', true],
+	['description', true]
 ]
 
 // The optional ROM fields, in the order they are written.
@@ -170,7 +205,24 @@ function cleanCompanies(value) {
 	)].join(' / ') || undefined
 }
 
-function gameToEntry(game) {
+/**
+ * Put the synopsis on one line, cutting it off at a word with "..." when it's too long.
+ */
+function cleanDescription(value) {
+	if (typeof value != 'string') {
+		return undefined
+	}
+	const description = value.replace(/\s+/g, ' ').trim()
+	if (description.length <= descriptionLength) {
+		return description || undefined
+	}
+	const max = descriptionLength - '...'.length
+	const lastSpace = description.lastIndexOf(' ', max)
+	const cut = lastSpace > 0 ? description.slice(0, lastSpace) : description.slice(0, max)
+	return cut.replace(/[\s,.;:!?-]+$/, '') + '...'
+}
+
+function gameToEntry(game, padName = 'Controller') {
 	const serial = game.id?.[0]
 	if (!serial) {
 		return null
@@ -223,6 +275,14 @@ function gameToEntry(game) {
 	if (input?.control?.some(control => analogControls.includes(control.$.type))) {
 		entry.analog = 1
 	}
+
+	// Controllers, like "Wii Remote / Nunchuk"
+	const controls = (input?.control ?? []).map(control => control.$.type == 'pad' ? padName : controlNames[control.$.type])
+	entry.controls = [...new Set(controls.filter(Boolean))].join(' / ') || undefined
+
+	// English description
+	const synopsis = game.locale?.findLast(locale => locale.$.lang == 'EN' && typeof locale.synopsis?.[0] == 'string' && locale.synopsis[0].trim())
+	entry.description = cleanDescription(synopsis?.synopsis[0])
 
 	// Genres, like "action,platformer" to "Action / Platform"
 	const genres = typeof game.genre?.[0] == 'string' ? game.genre[0].split(',') : []
@@ -324,9 +384,9 @@ function splitRoms({ roms, ...game }) {
 	})
 }
 
-function getDatabase(games, type = null) {
+function getDatabase(games, type = null, padName = undefined) {
 	return games
-		.map(gameToEntry)
+		.map(game => gameToEntry(game, padName))
 		.filter(game => game && (type == null || game.type == type))
 		.flatMap(splitRoms)
 		.sort((a, b) => compare(a.name, b.name) || compare(a.serial, b.serial) || compare(a.crc, b.crc))
@@ -341,8 +401,8 @@ async function buildDat(source, outputs, useCache) {
 	await downloadDB(`https://www.gametdb.com/${source}.zip`, `${source}.zip`, useCache)
 	await decompress(`${source}.zip`, 'dist')
 	const games = await readDB(`dist/${source}.xml`)
-	for (const { type, title, extension, file } of outputs) {
-		const database = getDatabase(games, type)
+	for (const { type, title, extension, file, pad } of outputs) {
+		const database = getDatabase(games, type, pad)
 		fs.writeFileSync(`libretro-database/dat/${file}.dat`, getDat(database, title, extension))
 	}
 }
@@ -361,12 +421,12 @@ async function main(args = process.argv.slice(2)) {
 
 	console.log('Sony PlayStation 3')
 	await buildDat('ps3tdb', [
-		{ title: 'Sony - PlayStation 3', extension: 'iso', file: 'Sony - PlayStation 3' }
+		{ title: 'Sony - PlayStation 3', extension: 'iso', file: 'Sony - PlayStation 3', pad: 'DualShock 3' }
 	], useCache)
 
 	console.log('Nintendo Wii U')
 	await buildDat('wiiutdb', [
-		{ title: 'Nintendo - Nintendo Wii U', extension: 'wux', file: 'Nintendo - Wii U' }
+		{ title: 'Nintendo - Nintendo Wii U', extension: 'wux', file: 'Nintendo - Wii U', pad: 'Wii U GamePad' }
 	], useCache)
 
 	// TODO: Nintendo Switch (switchtdb), once there is a Switch libretro core.
@@ -383,6 +443,7 @@ if (require.main === module) {
 
 module.exports = {
 	cleanCompanies,
+	cleanDescription,
 	cleanLanguages,
 	cleanTitle,
 	cleanValue,

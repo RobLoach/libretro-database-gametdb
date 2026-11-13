@@ -29,6 +29,9 @@
 		<input players="0">
 			<control type="wiimote" required="true"/>
 			<control type="nunchuk" required="true"/>
+			<control type="mii" required="false"/>
+			<control type="classiccontroller" required="false"/>
+			<control type="wiimote" required="false"/>
 		</input>
 	</game>
 	<game name="Pokémon Colosseum (Korea) (KO)">
@@ -38,6 +41,8 @@
 		<languages>KO,XX</languages>
 		<locale lang="EN">
 			<title>Pokémon Colosseum</title>
+			<synopsis>Battle with
+ "Shadow" Pokémon.</synopsis>
 		</locale>
 		<genre>role-playing</genre>
 		<rating type="GRB" value="ALL"/>
