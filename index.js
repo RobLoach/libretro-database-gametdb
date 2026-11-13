@@ -10,7 +10,20 @@ const regionNames = {
 	'NTSC-T': 'Taiwan',
 	'NTSC-A': 'Asia',
 	'PAL': 'Europe',
-	'PAL-R': 'Russia'
+	'PAL-R': 'Russia',
+	// Switch region codes
+	'ALL': 'World',
+	'USA': 'USA',
+	'EUR': 'Europe',
+	'JPN': 'Japan',
+	'KOR': 'Korea',
+	'TWN': 'Taiwan',
+	'CHN': 'China',
+	'AUS': 'Australia',
+	'DEU': 'Germany',
+	'ESP': 'Spain',
+	'FRA': 'France',
+	'RUS': 'Russia'
 }
 
 // GameTDB genres mapped to the genre names used across libretro-database.
@@ -51,7 +64,7 @@ const genreNames = {
 }
 
 // Controllers with an analog stick.
-const analogControls = ['nunchuk', 'gamecube', 'classiccontroller', 'procontroller', 'pad']
+const analogControls = ['nunchuk', 'gamecube', 'classiccontroller', 'procontroller', 'pad', 'joycon', 'slidepad']
 
 // GameTDB controllers mapped to their names. "pad" is named per database, as it's the PS3 and Wii U controller.
 const controlNames = {
@@ -61,6 +74,13 @@ const controlNames = {
 	'classiccontroller': 'Classic Controller',
 	'gamecube': 'GameCube Controller',
 	'procontroller': 'Pro Controller',
+	'joycon': 'Joy-Con',
+	'grip': 'Joy-Con Grip',
+	'strap': 'Joy-Con Strap',
+	'slidepad': 'Circle Pad Pro',
+	'rumble': 'Rumble Pak',
+	'expansionpak': 'Memory Expansion Pak',
+	'camera': 'Camera',
 	'balanceboard': 'Balance Board',
 	'zapper': 'Wii Zapper',
 	'wiispeak': 'Wii Speak',
@@ -158,7 +178,9 @@ async function downloadDB(url, filename, useCache = false) {
 }
 
 async function readDB(filename) {
-	const result = await xml2js.parseStringPromise(await fs.promises.readFile(filename, 'utf8'))
+	// XML element names can't start with a digit, like the 3DS database's old "<3DSTDB>"
+	const xml = (await fs.promises.readFile(filename, 'utf8')).replace(/<(\/?)(\d)/g, '<$1_$2')
+	const result = await xml2js.parseStringPromise(xml)
 	const games = result?.datafile?.game
 	if (!games) {
 		throw new Error(`No games found in ${filename}`)
@@ -229,6 +251,8 @@ function gameToEntry(game, padName = 'Controller') {
 	}
 
 	const date = game.date?.[0]?.$
+	// Regions, like "USA,EUR" to "USA, Europe", or "World" when it includes "ALL"
+	const regions = [...new Set((game.region?.[0] ?? 'NTSC-U').split(',').map(code => regionNames[code.trim()]).filter(Boolean))]
 	const entry = {
 		name: cleanLanguages(game.$?.name ?? '').replaceAll('°', ''),
 		serial,
@@ -237,7 +261,7 @@ function gameToEntry(game, padName = 'Controller') {
 		releaseyear: date?.year,
 		releasemonth: date?.month,
 		releaseday: date?.day,
-		region: regionNames[game.region?.[0] ?? 'NTSC-U'],
+		region: regions.includes('World') ? 'World' : regions.join(', ') || undefined,
 		type: game.type?.[0] == 'GameCube' ? 'GameCube' : 'Wii'
 	}
 
@@ -269,8 +293,10 @@ function gameToEntry(game, padName = 'Controller') {
 
 	// Amount of players/users, and analog support
 	const input = game.input?.[0]
-	if (input?.$?.players > 0) {
-		entry.users = input.$.players
+	// The DS lists the players with multiple cartridges, and with download play
+	const players = input?.$?.players ?? input?.$?.['players-multi-cart']
+	if (players > 0) {
+		entry.users = players
 	}
 	if (input?.control?.some(control => analogControls.includes(control.$.type))) {
 		entry.analog = 1
@@ -292,10 +318,16 @@ function gameToEntry(game, padName = 'Controller') {
 		.filter(genre => !genreList.some(other => other.startsWith(genre + ' / ')))
 		.join(' / ') || undefined
 
-	// Age Rating
+	// Age Rating, like <rating type="ESRB" value="E"/>, or the Switch's <rating_ESRB value="E"/>
 	const rating = game.rating?.[0]?.$
 	if (rating?.value && ratingTypes.includes(rating.type)) {
 		entry[rating.type.toLowerCase() + '_rating'] = rating.value
+	}
+	for (const type of ratingTypes) {
+		const value = game['rating_' + type]?.[0]?.$?.value
+		if (value) {
+			entry[type.toLowerCase() + '_rating'] = value
+		}
 	}
 
 	return entry
@@ -429,9 +461,20 @@ async function main(args = process.argv.slice(2)) {
 		{ title: 'Nintendo - Nintendo Wii U', extension: 'wux', file: 'Nintendo - Wii U', pad: 'Wii U GamePad' }
 	], useCache)
 
-	// TODO: Nintendo Switch (switchtdb), once there is a Switch libretro core.
-	// TODO: Nintendo DS (dstdb), if RetroArch adds serial scanning for it.
-	// Nintendo 3DS (3dstdb) is skipped, as GameTDB doesn't provide the CRCs RetroArch scans with.
+	console.log('Nintendo 3DS')
+	await buildDat('3dstdb', [
+		{ title: 'Nintendo - Nintendo 3DS', extension: '3ds', file: 'Nintendo - Nintendo 3DS' }
+	], useCache)
+
+	console.log('Nintendo DS')
+	await buildDat('dstdb', [
+		{ title: 'Nintendo - Nintendo DS', extension: 'nds', file: 'Nintendo - Nintendo DS' }
+	], useCache)
+
+	console.log('Nintendo Switch')
+	await buildDat('switchtdb', [
+		{ title: 'Nintendo - Nintendo Switch', extension: 'xci', file: 'Nintendo - Nintendo Switch' }
+	], useCache)
 }
 
 if (require.main === module) {

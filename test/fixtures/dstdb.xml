@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datafile>
+	<DSTDB version="20261113191542" games="1"/>
+	<game name="WarioWare: Touched! (Demo) (USA) (EN)">
+		<id>A22E</id>
+		<type>DS</type>
+		<region>NTSC-U</region>
+		<languages>EN</languages>
+		<locale lang="EN">
+			<title>WarioWare: Touched! (Demo)</title>
+			<synopsis>Microgames.</synopsis>
+		</locale>
+		<publisher>Nintendo</publisher>
+		<rating type="ESRB" value="E"/>
+		<input players-multi-cart="2" players-single-cart="1">
+			<control type="rumble" required="false"/>
+		</input>
+		<rom version="0" name="WarioWare: Touched! (Demo) (USA) (EN).ds" size="16777216" crc="5c56cdc7"/>
+	</game>
+</datafile>
