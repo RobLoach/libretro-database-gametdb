@@ -46,6 +46,7 @@
 		</input>
 		<rom version="0" name="Pokemon Colosseum (Korea) (KO).iso" size="1459978240" crc="1a2b3c4d" md5="0123456789abcdef0123456789abcdef" sha1="0123456789abcdef0123456789abcdef01234567"/>
 		<rom version="1" name="Pokemon Colosseum (Korea) (KO) (v1).iso" size="1459978240" crc="ffffffff"/>
+		<rom version="1" name="Pokemon Colosseum (Korea) (KO) (v1).iso" size="1459978240" crc="FFFFFFFF"/>
 	</game>
 	<game name="Ōkami (Japan) (JA)">
 		<id>ROWJ08</id>

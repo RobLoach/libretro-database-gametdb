@@ -33,7 +33,7 @@ test('gameToEntry maps fields and regions', async () => {
 	assert.strictEqual(erase.genre, undefined)
 	assert.strictEqual(erase.analog, undefined)
 	assert.strictEqual(erase.language, undefined)
-	assert.strictEqual(erase.crc, undefined)
+	assert.deepStrictEqual(erase.roms, [])
 
 	const deadSpace = gameToEntry(games[1])
 	assert.strictEqual(deadSpace.genre, 'Shooter')
@@ -41,7 +41,7 @@ test('gameToEntry maps fields and regions', async () => {
 	assert.strictEqual(deadSpace.esrb_rating, undefined)
 	assert.strictEqual(deadSpace.analog, 1)
 	assert.strictEqual(deadSpace.language, 'English / German')
-	assert.strictEqual(deadSpace.crc, undefined)
+	assert.deepStrictEqual(deadSpace.roms, [])
 
 	assert.strictEqual(gameToEntry(games[3]).cero_rating, 'C')
 
@@ -53,9 +53,18 @@ test('gameToEntry maps fields and regions', async () => {
 
 test('getDatabase skips games without an ID', async () => {
 	const games = await readDB(fixture)
-	assert.deepStrictEqual(getDatabase(games).map(game => game.serial), ['007E01', 'RDSP69', 'GC6K01', 'ROWJ08'])
+	assert.deepStrictEqual(getDatabase(games).map(game => game.serial), ['007E01', 'RDSP69', 'GC6K01', 'GC6K01', 'ROWJ08'])
 	assert.deepStrictEqual(getDatabase(games, 'Wii').map(game => game.serial), ['007E01', 'RDSP69', 'ROWJ08'])
-	assert.deepStrictEqual(getDatabase(games, 'GameCube').map(game => game.serial), ['GC6K01'])
+	assert.deepStrictEqual(getDatabase(games, 'GameCube').map(game => game.serial), ['GC6K01', 'GC6K01'])
+})
+
+test('getDatabase writes a game for each dump', async () => {
+	const games = await readDB(fixture)
+	const roms = getDatabase(games, 'GameCube').map(({ name, crc }) => ({ name, crc }))
+	assert.deepStrictEqual(roms, [
+		{ name: 'Pokémon Colosseum (Korea)', crc: '1A2B3C4D' },
+		{ name: 'Pokémon Colosseum (Korea) (Rev 1)', crc: 'FFFFFFFF' }
+	])
 })
 
 test('getDat writes the header and entries', async () => {
@@ -83,6 +92,22 @@ game (
 		crc 1A2B3C4D
 		md5 0123456789ABCDEF0123456789ABCDEF
 		sha1 0123456789ABCDEF0123456789ABCDEF01234567
+		serial "GC6K01"
+	)
+)
+
+game (
+	name "Pokemon Colosseum (Korea) (Rev 1)"
+	serial "GC6K01"
+	users 2
+	region "Korea"
+	language "Korean / XX"
+	genre "Role-playing (RPG)"
+	analog 1
+	rom (
+		name "Pokemon Colosseum (Korea) (Rev 1).iso"
+		size 1459978240
+		crc FFFFFFFF
 		serial "GC6K01"
 	)
 )

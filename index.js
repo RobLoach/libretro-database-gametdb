@@ -169,13 +169,19 @@ function gameToEntry(game) {
 	entry.language = languages.map(code => code.trim()).filter(Boolean)
 		.map(code => languageNames[code] ?? code).join(' / ') || undefined
 
-	// ROM size and hashes, from the first dump that has them
-	const rom = game.rom?.find(rom => rom.$?.crc)?.$
-	if (rom) {
-		entry.size = rom.size
-		entry.crc = rom.crc.toUpperCase()
-		entry.md5 = rom.md5?.toUpperCase()
-		entry.sha1 = rom.sha1?.toUpperCase()
+	// ROM size and hashes of each dump, skipping duplicate dumps
+	entry.roms = []
+	for (const rom of game.rom ?? []) {
+		const crc = rom.$?.crc?.toUpperCase()
+		if (crc && !entry.roms.some(other => other.crc == crc)) {
+			entry.roms.push({
+				version: rom.$.version,
+				size: rom.$.size,
+				crc,
+				md5: rom.$.md5?.toUpperCase(),
+				sha1: rom.$.sha1?.toUpperCase()
+			})
+		}
 	}
 
 	// Amount of players/users, and analog support
@@ -270,11 +276,25 @@ function compare(a, b) {
 	return a < b ? -1 : a > b ? 1 : 0
 }
 
+/**
+ * Split a game into one entry per dump, naming the revisions like "Game (USA) (Rev 1)".
+ */
+function splitRoms({ roms, ...game }) {
+	if (roms.length <= 1) {
+		return [{ ...game, ...roms[0] }]
+	}
+	return roms.map(rom => {
+		const revision = rom.version && rom.version != '0' ? ` (Rev ${rom.version})` : ''
+		return { ...game, ...rom, name: game.name + revision }
+	})
+}
+
 function getDatabase(games, type = null) {
 	return games
 		.map(gameToEntry)
 		.filter(game => game && (type == null || game.type == type))
-		.sort((a, b) => compare(a.name, b.name) || compare(a.serial, b.serial))
+		.flatMap(splitRoms)
+		.sort((a, b) => compare(a.name, b.name) || compare(a.serial, b.serial) || compare(a.crc, b.crc))
 }
 
 function getDat(database, title, extension, version) {
