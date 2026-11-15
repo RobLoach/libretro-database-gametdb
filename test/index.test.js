@@ -1,7 +1,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert')
 const path = require('path')
-const { cleanCompanies, cleanDescription, cleanLanguages, cleanTitle, gameToEntry, getDat, getDatabase, readDB } = require('..')
+const { cleanCompanies, cleanDescription, cleanLanguages, cleanTitle, datEntry, gameToEntry, getDat, getDatabase, readDB } = require('..')
 
 const fixture = path.join(__dirname, 'fixtures', 'wiitdb.xml')
 
@@ -204,4 +204,11 @@ test('gameToEntry reads the Switch regions and ratings', async () => {
 		{ name: 'Quest Contents Install Tool (USA, Europe) (Rev 1.0.0)', crc: 'C4A2D267' },
 		{ name: 'Quest Contents Install Tool (USA, Europe) (Rev 1.0.2)', crc: 'F9D4CB6C' }
 	])
+})
+
+test('datEntry skips unknown values', () => {
+	const dat = datEntry({ name: 'Game (USA)', serial: 'ABCD01', developer: '?????????', publisher: 'Nintendo?', description: 'Who??? What????' }, 'iso')
+	assert.doesNotMatch(dat, /developer/)
+	assert.doesNotMatch(dat, /description/)
+	assert.match(dat, /publisher "Nintendo\?"/)
 })
