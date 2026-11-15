@@ -166,6 +166,46 @@ test('getDat cleans quotes and skips zero users', async () => {
 	assert.match(dat, /cero_rating "C"\n	region "Japan"\n/)
 })
 
+test('readDB parses the 3DS database, which has an element name starting with a digit', async () => {
+	const games = await readDB(path.join(__dirname, 'fixtures', '3dstdb.xml'))
+	const game = gameToEntry(games[0])
+	assert.strictEqual(game.name, 'Metal Gear Solid: Snake Eater 3D (Europe)')
+	assert.strictEqual(game.serial, 'AMGP')
+	assert.strictEqual(game.region, 'Europe')
+	assert.strictEqual(game.pegi_rating, '18')
+	assert.strictEqual(game.controls, 'Circle Pad Pro')
+	assert.strictEqual(game.analog, 1)
+	assert.match(getDat(getDatabase(games), 'Nintendo - Nintendo 3DS', '3ds'), /name "Metal Gear Solid: Snake Eater 3D \(Europe\).3ds"\n		size 1073741824\n		crc 1A2B3C4D\n		serial "AMGP"/)
+})
+
+test('gameToEntry reads the DS players', async () => {
+	const games = await readDB(path.join(__dirname, 'fixtures', 'dstdb.xml'))
+	const game = gameToEntry(games[0])
+	assert.strictEqual(game.name, 'WarioWare: Touched! (Demo) (USA)')
+	assert.strictEqual(game.users, '2')
+	assert.strictEqual(game.controls, 'Rumble Pak')
+	assert.strictEqual(game.esrb_rating, 'E')
+	assert.strictEqual(game.description, 'Microgames.')
+})
+
+test('gameToEntry reads the Switch regions and ratings', async () => {
+	const games = await readDB(path.join(__dirname, 'fixtures', 'switchtdb.xml'))
+	const joe = gameToEntry(games[1])
+	assert.strictEqual(joe.name, 'NEW Joe & Mac - Caveman Ninja (World)')
+	assert.strictEqual(joe.region, 'World')
+	assert.strictEqual(joe.esrb_rating, 'E10+')
+	assert.strictEqual(joe.pegi_rating, '7')
+	assert.strictEqual(joe.users, '2')
+	assert.strictEqual(joe.analog, 1)
+	assert.strictEqual(joe.controls, 'Joy-Con / Pro Controller')
+	assert.strictEqual(gameToEntry(games[0]).region, 'USA, Europe')
+	assert.deepStrictEqual(getDatabase(games).map(({ name, crc }) => ({ name, crc })), [
+		{ name: 'NEW Joe & Mac - Caveman Ninja (World)', crc: undefined },
+		{ name: 'Quest Contents Install Tool (USA, Europe) (Rev 1.0.0)', crc: 'C4A2D267' },
+		{ name: 'Quest Contents Install Tool (USA, Europe) (Rev 1.0.2)', crc: 'F9D4CB6C' }
+	])
+})
+
 test('datEntry skips unknown values', () => {
 	const dat = datEntry({ name: 'Game (USA)', serial: 'ABCD01', developer: '?????????', publisher: 'Nintendo?', description: 'Who??? What????' }, 'iso')
 	assert.doesNotMatch(dat, /developer/)

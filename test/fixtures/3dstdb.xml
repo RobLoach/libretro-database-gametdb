@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datafile>
+	<3DSTDB version="20261113194431" games="1"/>
+	<game name="Metal Gear Solid: Snake Eater 3D (Europe) (EN,FR,DE,ES,IT)">
+		<id>AMGP</id>
+		<type>3DS</type>
+		<region>PAL</region>
+		<languages>EN,FR,DE,ES,IT</languages>
+		<locale lang="EN">
+			<title>Metal Gear Solid: Snake Eater 3D</title>
+			<synopsis/>
+		</locale>
+		<publisher>Konami</publisher>
+		<date year="2012" month="3" day="8"/>
+		<rating type="PEGI" value="18"/>
+		<input players="1">
+			<control type="slidepad" required="false"/>
+		</input>
+		<rom version="0" name="Metal Gear Solid: Snake Eater 3D (Europe) (EN,FR,DE,ES,IT).3ds" size="1073741824" crc="1a2b3c4d"/>
+	</game>
+</datafile>
