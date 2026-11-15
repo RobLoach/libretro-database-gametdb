@@ -1,14 +1,17 @@
 const { test } = require('node:test')
 const assert = require('node:assert')
 const path = require('path')
-const { cleanCompanies, cleanDescription, cleanLanguages, cleanTitle, datEntry, gameToEntry, getDat, getDatabase, readDB } = require('..')
+const { cleanCompanies, cleanDescription, cleanLanguages, cleanTitle, datEntry, gameToEntry, getDat, getDatabase, readDB, serialRegion } = require('..')
 
 const fixture = path.join(__dirname, 'fixtures', 'wiitdb.xml')
 
 test('cleanLanguages only changes language codes', () => {
 	assert.strictEqual(cleanLanguages('DEAD SPACE (Europe) (EN,DE)'), 'DEAD SPACE (Europe) (En,De)')
 	assert.strictEqual(cleanLanguages('ENDLESS OCEAN (USA) (EN)'), 'ENDLESS OCEAN (USA) (En)')
-	assert.strictEqual(cleanLanguages('Game (USA) (EN,ZHCN)'), 'Game (USA) (En,ZHCN)')
+	assert.strictEqual(cleanLanguages('Game (USA) (EN,ZHCN)'), 'Game (USA) (En,Zh)')
+	assert.strictEqual(cleanLanguages('Game (Europe) (SE,CZ,DK)'), 'Game (Europe) (Sv,Cs,Da)')
+	assert.strictEqual(cleanLanguages('Game (Asia) (ZHCN,ZHTW)'), 'Game (Asia) (Zh)')
+	assert.strictEqual(cleanLanguages('Game (USA) (DLC)'), 'Game (USA) (DLC)')
 })
 
 test('cleanCompanies separates companies with slashes', () => {
@@ -211,4 +214,67 @@ test('datEntry skips unknown values', () => {
 	assert.doesNotMatch(dat, /developer/)
 	assert.doesNotMatch(dat, /description/)
 	assert.match(dat, /publisher "Nintendo\?"/)
+})
+
+test('getDatabase only includes the given types', async () => {
+	const games = await readDB(path.join(__dirname, 'fixtures', 'switchtdb.xml'))
+	assert.deepStrictEqual(getDatabase(games, ['Switch']).map(game => game.serial), ['1CGNA', '1CGNA'])
+	assert.deepStrictEqual(getDatabase(games, ['eShop']).map(game => game.serial), ['A22UA'])
+})
+
+test('gameToEntry removes tabs from names and hashes', () => {
+	const game = gameToEntry({
+		$: { name: 'GO Series D-Tank\t (Europe) (EN)' },
+		id: ['KTAP'],
+		region: ['PAL'],
+		rom: [{ $: { crc: '\tb2398c1', md5: 'abc ' } }]
+	})
+	assert.strictEqual(game.name, 'GO Series D-Tank (Europe) (En)')
+	assert.strictEqual(game.roms[0].crc, 'B2398C1')
+	assert.strictEqual(game.roms[0].md5, 'ABC')
+})
+
+test('getDatabase adds language tags to games with the same name', () => {
+	const game = (id, languages) => ({
+		$: { name: 'Game' },
+		id: [id],
+		region: ['PAL'],
+		languages: [languages],
+		locale: [{ $: { lang: 'EN' }, title: ['Game'] }]
+	})
+	const names = getDatabase([game('GAMP01', 'EN,FR,SE'), game('GAMD01', 'DE'), game('OTHE01', 'EN')].concat({
+		$: { name: 'Other' }, id: ['OTHP01'], region: ['PAL'], languages: ['EN'], locale: [{ $: { lang: 'EN' }, title: ['Other'] }]
+	})).map(game => game.name)
+	assert.deepStrictEqual(names, ['Game (Europe) (De)', 'Game (Europe) (En)', 'Game (Europe) (En,Fr,Sv)', 'Other (Europe)'])
+})
+
+test('gameToEntry uses another title when there is no English one, or skips the game', () => {
+	const japanese = gameToEntry({
+		$: { name: ' (Japan) (JA)' },
+		id: ['KXNJ'],
+		region: ['NTSC-J'],
+		locale: [{ $: { lang: 'JA' }, title: ['ドラゴンクエストX　オンライン'] }]
+	})
+	assert.strictEqual(japanese.name, 'ドラゴンクエストX オンライン (Japan) (Ja)')
+	assert.strictEqual(gameToEntry({ $: { name: '' }, id: ['A5XXD'] }), null)
+	assert.strictEqual(gameToEntry({ $: { name: ' (EN)' }, id: ['ALP3A'], region: ['ALL'] }), null)
+})
+
+test('serialRegion reads the region from the serial', () => {
+	assert.strictEqual(serialRegion('RMCE01'), 'NTSC-U')
+	assert.strictEqual(serialRegion('AMGP'), 'PAL')
+	assert.strictEqual(serialRegion('B5WQ'), 'PAL')
+	assert.strictEqual(serialRegion('BLJM60001'), 'NTSC-J')
+	assert.strictEqual(serialRegion('NPEB00001'), 'PAL')
+	assert.strictEqual(serialRegion('NPHA80001'), 'NTSC-A')
+	assert.strictEqual(serialRegion('A2AA'), undefined)
+	assert.strictEqual(serialRegion('A3LVB'), undefined)
+	assert.strictEqual(serialRegion('ASIA00048'), undefined)
+})
+
+test('gameToEntry uses the serial region when GameTDB has none, instead of USA', () => {
+	const game = (id) => ({ $: { name: 'Game (EN)' }, id: [id], locale: [{ $: { lang: 'EN' }, title: ['Game'] }] })
+	assert.strictEqual(gameToEntry(game('BLES00406')).name, 'Game (Europe)')
+	assert.strictEqual(gameToEntry(game('A3LVB')).region, undefined)
+	assert.strictEqual(gameToEntry(game('A3LVB')).name, 'Game')
 })

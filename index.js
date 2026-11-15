@@ -103,6 +103,33 @@ const controlNames = {
 	'3dglasses': '3D Glasses'
 }
 
+// Nintendo serial region characters, like the "E" in "RMCE01", only where GameTDB's regions agree.
+const nintendoSerialRegions = {
+	E: 'NTSC-U',
+	J: 'NTSC-J',
+	K: 'NTSC-K',
+	R: 'PAL-R',
+	P: 'PAL',
+	D: 'PAL',
+	F: 'PAL',
+	H: 'PAL',
+	I: 'PAL',
+	Q: 'PAL',
+	S: 'PAL',
+	U: 'PAL',
+	V: 'PAL'
+}
+
+// PlayStation 3 serial region characters, like the "U" in "BLUS30198".
+const ps3SerialRegions = {
+	U: 'NTSC-U',
+	E: 'PAL',
+	J: 'NTSC-J',
+	K: 'NTSC-K',
+	A: 'NTSC-A',
+	H: 'NTSC-A'
+}
+
 // The longest description, after which it is cut off with "...".
 const descriptionLength = 140
 
@@ -130,12 +157,41 @@ const languageNames = {
 	GR: 'Greek',
 	TR: 'Turkish',
 	AR: 'Arabic',
+	TH: 'Thai',
 	KO: 'Korean',
 	ZHTW: 'Chinese (Traditional)',
 	ZHCN: 'Chinese (Simplified)'
 }
 
-const languageCodes = ['EN', 'FR', 'IT', 'ES', 'DE', 'NL', 'PT', 'JA', 'SV', 'FI', 'PL', 'CS', 'HU']
+// Language codes in GameTDB names mapped to No-Intro's, like "SE" to "Sv".
+const languageCodes = {
+	EN: 'En',
+	JA: 'Ja',
+	FR: 'Fr',
+	ES: 'Es',
+	DE: 'De',
+	IT: 'It',
+	NL: 'Nl',
+	PT: 'Pt',
+	SE: 'Sv',
+	SV: 'Sv',
+	DK: 'Da',
+	NO: 'No',
+	FI: 'Fi',
+	RU: 'Ru',
+	PL: 'Pl',
+	CZ: 'Cs',
+	CS: 'Cs',
+	SK: 'Sk',
+	HU: 'Hu',
+	GR: 'El',
+	TR: 'Tr',
+	AR: 'Ar',
+	TH: 'Th',
+	KO: 'Ko',
+	ZHTW: 'Zh',
+	ZHCN: 'Zh'
+}
 
 // Company suffixes that follow a comma, like "Nintendo Co., Ltd.", which aren't separate companies.
 const companySuffixes = ['inc', 'ltd', 'llc', 'co', 'corp', 'limited', 'gmbh', 'pty', 'plc', 's.a']
@@ -189,13 +245,11 @@ async function readDB(filename) {
 }
 
 /**
- * Title-case the language codes in a GameTDB name, like "(EN,FR)" to "(En,Fr)".
+ * Use No-Intro's language codes in a GameTDB name, like "(EN,FR,SE)" to "(En,Fr,Sv)".
  */
 function cleanLanguages(name) {
 	return name.replace(/\(([A-Z]{2,4}(?:,[A-Z]{2,4})*)\)/g, (match, codes) => {
-		return '(' + codes.split(',').map(code => {
-			return languageCodes.includes(code) ? code[0] + code.slice(1).toLowerCase() : code
-		}).join(',') + ')'
+		return '(' + [...new Set(codes.split(',').map(code => languageCodes[code] ?? code))].join(',') + ')'
 	})
 }
 
@@ -244,6 +298,29 @@ function cleanDescription(value) {
 	return cut.replace(/[\s,.;:!?-]+$/, '') + '...'
 }
 
+/**
+ * The GameTDB region of a serial, for games without one. Switch serials don't have a region.
+ */
+function serialRegion(serial) {
+	// PlayStation 3, like "BLUS30198" or "NPEB00001"
+	const ps3 = serial.match(/^[BN][A-Z]([A-Z])[A-Z]\d{5}$/)
+	if (ps3) {
+		return ps3SerialRegions[ps3[1]]
+	}
+	// Nintendo, like "RMCE01" or "AMGP"
+	if (/^[A-Z0-9]{3}[A-Z]([A-Z0-9]{2})?$/.test(serial)) {
+		return nintendoSerialRegions[serial[3]]
+	}
+	return undefined
+}
+
+/**
+ * Upper-case a hash, removing stray whitespace like tabs.
+ */
+function cleanHash(value) {
+	return typeof value == 'string' ? value.replace(/\s+/g, '').toUpperCase() || undefined : undefined
+}
+
 function gameToEntry(game, padName = 'Controller') {
 	const serial = game.id?.[0]
 	if (!serial) {
@@ -252,7 +329,8 @@ function gameToEntry(game, padName = 'Controller') {
 
 	const date = game.date?.[0]?.$
 	// Regions, like "USA,EUR" to "USA, Europe", or "World" when it includes "ALL"
-	const regions = [...new Set((game.region?.[0] ?? 'NTSC-U').split(',').map(code => regionNames[code.trim()]).filter(Boolean))]
+	const region = (typeof game.region?.[0] == 'string' && game.region[0].trim()) || serialRegion(serial) || ''
+	const regions = [...new Set(region.split(',').map(code => regionNames[code.trim()]).filter(Boolean))]
 	const entry = {
 		name: cleanLanguages(game.$?.name ?? '').replaceAll('°', ''),
 		serial,
@@ -262,31 +340,46 @@ function gameToEntry(game, padName = 'Controller') {
 		releasemonth: date?.month,
 		releaseday: date?.day,
 		region: regions.includes('World') ? 'World' : regions.join(', ') || undefined,
-		type: game.type?.[0] == 'GameCube' ? 'GameCube' : 'Wii'
+		// Like "WiiWare" or "eShop", where Wii discs have an empty type
+		type: (typeof game.type?.[0] == 'string' && game.type[0].trim()) || 'Wii'
 	}
 
 	// Prefer the English title, with the region
 	const english = game.locale?.findLast(locale => locale.$.lang == 'EN' && locale.title?.[0])
 	if (english) {
 		entry.name = english.title[0] + (entry.region ? ` (${entry.region})` : '')
+	} else if (/^\s*(\(|$)/.test(entry.name)) {
+		// Use the title in another language when the name is only tags, like " (Japan) (JA)"
+		const local = game.locale?.find(locale => typeof locale.title?.[0] == 'string' && locale.title[0].trim())
+		if (local) {
+			entry.name = local.title[0] + ' ' + entry.name
+		}
+	}
+	// Put the name on one line, as some have tabs
+	entry.name = entry.name.replace(/\s+/g, ' ').trim()
+	// Skip games without a title in any language
+	if (!entry.name || entry.name.startsWith('(')) {
+		return null
 	}
 
 	// Languages, like "EN,FR" to "English / French"
-	const languages = typeof game.languages?.[0] == 'string' ? game.languages[0].split(',') : []
-	entry.language = languages.map(code => code.trim()).filter(Boolean)
-		.map(code => languageNames[code] ?? code).join(' / ') || undefined
+	const languages = (typeof game.languages?.[0] == 'string' ? game.languages[0].split(',') : [])
+		.map(code => code.trim()).filter(Boolean)
+	entry.language = languages.map(code => languageNames[code] ?? code).join(' / ') || undefined
+	// Language tag to tell apart games with the same name, like "(En,Fr)"
+	entry.languageTag = languages.length > 0 ? cleanLanguages(`(${languages.join(',')})`) : undefined
 
 	// ROM size and hashes of each dump, skipping duplicate dumps
 	entry.roms = []
 	for (const rom of game.rom ?? []) {
-		const crc = rom.$?.crc?.toUpperCase()
+		const crc = cleanHash(rom.$?.crc)
 		if (crc && !entry.roms.some(other => other.crc == crc)) {
 			entry.roms.push({
 				version: rom.$.version,
 				size: rom.$.size,
 				crc,
-				md5: rom.$.md5?.toUpperCase(),
-				sha1: rom.$.sha1?.toUpperCase()
+				md5: cleanHash(rom.$.md5),
+				sha1: cleanHash(rom.$.sha1)
 			})
 		}
 	}
@@ -417,10 +510,31 @@ function splitRoms({ roms, ...game }) {
 	})
 }
 
-function getDatabase(games, type = null, padName = undefined) {
-	return games
+/**
+ * Add the language tag to games that share a name, like "Game (Europe) (Fr,De)".
+ */
+function addLanguageTags(entries) {
+	const counts = {}
+	for (const entry of entries) {
+		counts[entry.name] = (counts[entry.name] ?? 0) + 1
+	}
+	return entries.map(entry => {
+		if (counts[entry.name] > 1 && entry.languageTag && !entry.name.endsWith(entry.languageTag)) {
+			return { ...entry, name: `${entry.name} ${entry.languageTag}` }
+		}
+		return entry
+	})
+}
+
+/**
+ * The games of the given types, like "Wii" or ["3DS", "New3DS"], or all games when no type is given.
+ */
+function getDatabase(games, types = null, padName = undefined) {
+	const typeList = types == null ? null : [].concat(types)
+	const entries = games
 		.map(game => gameToEntry(game, padName))
-		.filter(game => game && (type == null || game.type == type))
+		.filter(game => game && (typeList == null || typeList.includes(game.type)))
+	return addLanguageTags(entries)
 		.flatMap(splitRoms)
 		.sort((a, b) => compare(a.name, b.name) || compare(a.serial, b.serial) || compare(a.crc, b.crc))
 }
@@ -434,8 +548,8 @@ async function buildDat(source, outputs, useCache) {
 	await downloadDB(`https://www.gametdb.com/${source}.zip`, `${source}.zip`, useCache)
 	await decompress(`${source}.zip`, 'dist')
 	const games = await readDB(`dist/${source}.xml`)
-	for (const { type, title, extension, file, pad } of outputs) {
-		const database = getDatabase(games, type, pad)
+	for (const { types, title, extension, file, pad } of outputs) {
+		const database = getDatabase(games, types, pad)
 		fs.writeFileSync(`libretro-database/dat/${file}.dat`, getDat(database, title, extension))
 	}
 }
@@ -448,33 +562,33 @@ async function main(args = process.argv.slice(2)) {
 
 	console.log('Wii/GameCube')
 	await buildDat('wiitdb', [
-		{ type: 'Wii', title: 'Nintendo - Nintendo Wii', extension: 'iso', file: 'Nintendo - Wii' },
-		{ type: 'GameCube', title: 'Nintendo - Nintendo GameCube', extension: 'iso', file: 'Nintendo - GameCube' }
+		{ types: ['Wii'], title: 'Nintendo - Nintendo Wii', extension: 'iso', file: 'Nintendo - Wii' },
+		{ types: ['GameCube'], title: 'Nintendo - Nintendo GameCube', extension: 'iso', file: 'Nintendo - GameCube' }
 	], useCache)
 
 	console.log('Sony PlayStation 3')
 	await buildDat('ps3tdb', [
-		{ title: 'Sony - PlayStation 3', extension: 'iso', file: 'Sony - PlayStation 3', pad: 'DualShock 3' }
+		{ types: ['PS3'], title: 'Sony - PlayStation 3', extension: 'iso', file: 'Sony - PlayStation 3', pad: 'DualShock 3' }
 	], useCache)
 
 	console.log('Nintendo Wii U')
 	await buildDat('wiiutdb', [
-		{ title: 'Nintendo - Nintendo Wii U', extension: 'wux', file: 'Nintendo - Wii U', pad: 'Wii U GamePad' }
+		{ types: ['WiiU'], title: 'Nintendo - Nintendo Wii U', extension: 'wux', file: 'Nintendo - Wii U', pad: 'Wii U GamePad' }
 	], useCache)
 
 	console.log('Nintendo 3DS')
 	await buildDat('3dstdb', [
-		{ title: 'Nintendo - Nintendo 3DS', extension: '3ds', file: 'Nintendo - Nintendo 3DS' }
+		{ types: ['3DS', 'New3DS'], title: 'Nintendo - Nintendo 3DS', extension: '3ds', file: 'Nintendo - Nintendo 3DS' }
 	], useCache)
 
 	console.log('Nintendo DS')
 	await buildDat('dstdb', [
-		{ title: 'Nintendo - Nintendo DS', extension: 'nds', file: 'Nintendo - Nintendo DS' }
+		{ types: ['DS', 'DSi'], title: 'Nintendo - Nintendo DS', extension: 'nds', file: 'Nintendo - Nintendo DS' }
 	], useCache)
 
 	console.log('Nintendo Switch')
 	await buildDat('switchtdb', [
-		{ title: 'Nintendo - Nintendo Switch', extension: 'xci', file: 'Nintendo - Nintendo Switch' }
+		{ types: ['Switch'], title: 'Nintendo - Nintendo Switch', extension: 'xci', file: 'Nintendo - Nintendo Switch' }
 	], useCache)
 }
 
@@ -497,5 +611,6 @@ module.exports = {
 	getDat,
 	getDatabase,
 	header,
-	readDB
+	readDB,
+	serialRegion
 }
