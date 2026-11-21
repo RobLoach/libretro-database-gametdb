@@ -37,6 +37,8 @@ test('cleanCompanies keeps company suffixes and web addresses', () => {
 
 test('cleanDescription puts it on one line and cuts it off', () => {
 	assert.strictEqual(cleanDescription('  Jump\n\n and  run. '), 'Jump and run.')
+	assert.strictEqual(cleanDescription('Jump and run. Then do it again!'), 'Jump and run.')
+	assert.strictEqual(cleanDescription('Jump! Run? Go.'), 'Jump!')
 	assert.strictEqual(cleanDescription(''), undefined)
 	assert.strictEqual(cleanDescription(undefined), undefined)
 	assert.strictEqual(cleanDescription('a'.repeat(140)), 'a'.repeat(140))

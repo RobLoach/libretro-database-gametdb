@@ -282,13 +282,13 @@ function cleanCompanies(value) {
 }
 
 /**
- * Put the synopsis on one line, cutting it off at a word with "..." when it's too long.
+ * Put the synopsis on one line and keep its first sentence, cutting it off at a word with "..." when it's too long.
  */
 function cleanDescription(value) {
 	if (typeof value != 'string') {
 		return undefined
 	}
-	const description = value.replace(/\s+/g, ' ').trim()
+	const description = value.replace(/\s+/g, ' ').trim().replace(/^(.*?[.!?])\s.*$/, '$1')
 	if (description.length <= descriptionLength) {
 		return description || undefined
 	}
